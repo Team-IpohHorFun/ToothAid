@@ -54,8 +54,8 @@ const CreateClinicDay = ({ token }) => {
             throw new Error('PM Capacity must be a valid number');
           }
         }
-        if (amCapacity && pmCapacity && (amCapacity + pmCapacity) > capacity) {
-          throw new Error('AM + PM capacity cannot exceed total capacity');
+        if (amCapacity && pmCapacity && (amCapacity + pmCapacity) !== capacity) {
+          throw new Error('AM + PM capacity must equal total capacity');
         }
       }
 

@@ -431,7 +431,6 @@ const Graphs = () => {
                   contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
                   formatter={(value) => [value.toFixed(2), 'Avg Decayed Teeth']}
                 />
-                <Legend />
                 <Line 
                   type="monotone" 
                   dataKey="avgD" 
@@ -459,7 +458,6 @@ const Graphs = () => {
                   contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
                   formatter={(value) => [`${value}%`, 'Percentage']}
                 />
-                <Legend />
                 <Line 
                   type="monotone" 
                   dataKey="pct" 
@@ -487,7 +485,6 @@ const Graphs = () => {
                   contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
                   formatter={(value) => [`${value}%`, 'F/DMFT Ratio']}
                 />
-                <Legend />
                 <Line 
                   type="monotone" 
                   dataKey="ratio" 
@@ -639,7 +636,6 @@ const Graphs = () => {
                   contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
                   formatter={(value) => [value.toFixed(2), 'Average DMFT']}
                 />
-                <Legend />
                 <Line 
                   type="monotone" 
                   dataKey="avgDmft" 
