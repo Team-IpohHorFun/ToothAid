@@ -1,0 +1,97 @@
+import mongoose from 'mongoose';
+
+const visitSchema = new mongoose.Schema({
+  visitId: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  childId: {
+    type: String,
+    required: true,
+    index: true
+  },
+  date: {
+    type: Date,
+    required: true,
+    index: true
+  },
+  type: {
+    type: String,
+    enum: ['SCREENING', 'TREATMENT', 'FOLLOWUP'],
+    required: true
+  },
+  painFlag: {
+    type: Boolean,
+    default: false
+  },
+  swellingFlag: {
+    type: Boolean,
+    default: false
+  },
+  decayedTeeth: {
+    type: Number,
+    default: null
+  },
+  missingTeeth: {
+    type: Number,
+    default: null
+  },
+  filledTeeth: {
+    type: Number,
+    default: null
+  },
+  treatmentTypes: {
+    type: [String],
+    default: []
+  },
+  followUpDate: {
+    type: Date,
+    default: null
+  },
+  notes: {
+    type: String,
+    default: null
+  },
+  createdBy: {
+    type: String,
+    required: true,
+    trim: true,
+    index: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+}, {
+  timestamps: false,
+  strict: true // Only allow fields defined in schema
+});
+
+// Pre-save hook to remove old fields (extra safety)
+visitSchema.pre('save', function(next) {
+  // Remove old fields if they somehow exist
+  if (this.isNew || this.isModified()) {
+    delete this.referralFlag;
+    delete this.dmft;
+    delete this.DMFT;
+  }
+  next();
+});
+
+// Pre-update hook to remove old fields
+visitSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(next) {
+  // Remove old fields from update operations
+  if (this._update) {
+    delete this._update.referralFlag;
+    delete this._update.dmft;
+    delete this._update.DMFT;
+  }
+  next();
+});
+
+// Compound index for child visits
+visitSchema.index({ childId: 1, date: -1 });
+
+export default mongoose.model('Visit', visitSchema);

@@ -1,0 +1,25 @@
+{
+  "name": "toothaid-server",
+  "version": "1.0.0",
+  "description": "Offline-first dental clinic backend",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "seed": "node scripts/seed.js",
+    "view-data": "node scripts/view-data.js",
+    "migrate-visits": "node scripts/migrate-visits.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  }
+}

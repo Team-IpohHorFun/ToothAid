@@ -1,0 +1,48 @@
+/*
+  Typography
+  - Primary font: Inter (loaded via <link> in `client/index.html`)
+  - Optional: self-host a branded font (e.g., Proxima Nova) by placing font files in
+    `client/public/fonts/` and uncommenting the @font-face blocks below.
+*/
+
+/* Optional Proxima Nova (self-hosted)
+@font-face {
+  font-family: 'Proxima Nova';
+  src: url('/fonts/ProximaNova-Regular.woff2') format('woff2'),
+       url('/fonts/ProximaNova-Regular.woff') format('woff'),
+       url('/fonts/ProximaNova-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Proxima Nova';
+  src: url('/fonts/ProximaNova-Medium.woff2') format('woff2'),
+       url('/fonts/ProximaNova-Medium.woff') format('woff'),
+       url('/fonts/ProximaNova-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Proxima Nova';
+  src: url('/fonts/ProximaNova-Semibold.woff2') format('woff2'),
+       url('/fonts/ProximaNova-Semibold.woff') format('woff'),
+       url('/fonts/ProximaNova-Semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Proxima Nova';
+  src: url('/fonts/ProximaNova-Bold.woff2') format('woff2'),
+       url('/fonts/ProximaNova-Bold.woff') format('woff'),
+       url('/fonts/ProximaNova-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+*/
