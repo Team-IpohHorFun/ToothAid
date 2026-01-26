@@ -119,6 +119,20 @@ const Graphs = () => {
     return Object.values(latestVisitPerChild);
   };
 
+  // Helper: All months between start and end (YYYY-MM), inclusive; equal x-axis spacing for line charts
+  const getAllMonthsInRange = (startKey, endKey) => {
+    const out = [];
+    const [sy, sm] = startKey.split('-').map(Number);
+    const [ey, em] = endKey.split('-').map(Number);
+    let y = sy, m = sm;
+    while (y < ey || (y === ey && m <= em)) {
+      out.push(`${y}-${String(m).padStart(2, '0')}`);
+      m += 1;
+      if (m > 12) { m = 1; y += 1; }
+    }
+    return out;
+  };
+
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -153,16 +167,22 @@ const Graphs = () => {
         });
 
         const monthKeys = Object.keys(visitsByMonth).sort();
+        const allMonths = monthKeys.length > 0
+          ? getAllMonthsInRange(monthKeys[0], monthKeys[monthKeys.length - 1])
+          : [];
+
+        // Line charts use allMonths so x-axis has equal time intervals; missing months show as 0
+        const valueForMonth = (monthKey) => {
+          const monthVisits = visitsByMonth[monthKey] || [];
+          return getLatestVisitsPerChildInMonth(monthVisits);
+        };
 
         // Chart 1: Average Decayed Teeth (D) per child - Monthly
-        const avgDecayedTeeth = monthKeys.map(monthKey => {
-          const monthVisits = visitsByMonth[monthKey];
-          const latestVisits = getLatestVisitsPerChildInMonth(monthVisits);
-          
+        const avgDecayedTeeth = allMonths.map(monthKey => {
+          const latestVisits = valueForMonth(monthKey);
           const decayedValues = latestVisits.map(v => (v.decayedTeeth ?? 0));
           const totalD = decayedValues.reduce((sum, d) => sum + d, 0);
           const childCount = decayedValues.length;
-          
           return {
             month: monthKey,
             avgD: childCount > 0 ? parseFloat((totalD / childCount).toFixed(2)) : 0
@@ -170,13 +190,10 @@ const Graphs = () => {
         });
 
         // Chart 2: % of children with ≥1 decayed tooth - Monthly
-        const pctWithDecay = monthKeys.map(monthKey => {
-          const monthVisits = visitsByMonth[monthKey];
-          const latestVisits = getLatestVisitsPerChildInMonth(monthVisits);
-          
+        const pctWithDecay = allMonths.map(monthKey => {
+          const latestVisits = valueForMonth(monthKey);
           const childrenWithDecay = latestVisits.filter(v => (v.decayedTeeth ?? 0) >= 1).length;
           const totalChildren = latestVisits.length;
-          
           return {
             month: monthKey,
             pct: totalChildren > 0 ? parseFloat(((childrenWithDecay / totalChildren) * 100).toFixed(1)) : 0
@@ -184,29 +201,20 @@ const Graphs = () => {
         });
 
         // Chart 3: F / DMFT ratio - Monthly (population-level)
-        const fDmftRatio = monthKeys.map(monthKey => {
-          const monthVisits = visitsByMonth[monthKey];
-          const latestVisits = getLatestVisitsPerChildInMonth(monthVisits);
-          
+        const fDmftRatio = allMonths.map(monthKey => {
+          const latestVisits = valueForMonth(monthKey);
           let totalF = 0;
           let totalDMFT = 0;
-          
           latestVisits.forEach(v => {
             const D = v.decayedTeeth ?? 0;
             const M = v.missingTeeth ?? 0;
             const F = v.filledTeeth ?? 0;
             const DMFT = D + M + F;
-            
             totalF += F;
             totalDMFT += DMFT;
           });
-          
           const ratio = totalDMFT > 0 ? parseFloat(((totalF / totalDMFT) * 100).toFixed(1)) : 0;
-          
-          return {
-            month: monthKey,
-            ratio: ratio
-          };
+          return { month: monthKey, ratio };
         });
 
         // Chart 4: Treatments by Type - Bar chart
@@ -330,20 +338,16 @@ const Graphs = () => {
           .slice(0, 10);
 
         // Chart 7: Average DMFT over time - Monthly (supporting chart)
-        const avgDmftOverTime = monthKeys.map(monthKey => {
-          const monthVisits = visitsByMonth[monthKey];
-          const latestVisits = getLatestVisitsPerChildInMonth(monthVisits);
-          
+        const avgDmftOverTime = allMonths.map(monthKey => {
+          const latestVisits = valueForMonth(monthKey);
           const dmftValues = latestVisits.map(v => {
             const D = v.decayedTeeth ?? 0;
             const M = v.missingTeeth ?? 0;
             const F = v.filledTeeth ?? 0;
             return D + M + F;
           });
-          
           const totalDMFT = dmftValues.reduce((sum, dmft) => sum + dmft, 0);
           const childCount = dmftValues.length;
-          
           return {
             month: monthKey,
             avgDmft: childCount > 0 ? parseFloat((totalDMFT / childCount).toFixed(2)) : 0

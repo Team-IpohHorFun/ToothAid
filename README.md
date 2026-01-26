@@ -449,36 +449,6 @@ cd server
 npm run view-data
 ```
 
-## 🐛 Troubleshooting
-
-### MongoDB Connection Issues
-- **Local MongoDB**: Ensure MongoDB is running
-  - Docker: `docker ps`
-  - Local: `brew services list` (macOS) or check Windows services
-- **MongoDB Atlas**: 
-  - Verify connection string includes password and database name
-  - Check Network Access → Add your IP address
-  - Ensure database user has read/write permissions
-- **Connection String Format**:
-  - Local: `mongodb://localhost:27017/toothaid`
-  - Atlas: `mongodb+srv://username:password@cluster.mongodb.net/toothaid`
-
-### Sync Not Working
-- Check if device is online
-- Verify JWT token is valid (try logging out and back in)
-- Check browser console for errors
-- Verify server is running and accessible
-
-### IndexedDB Issues
-- Clear browser cache and reload
-- Check browser DevTools > Application > IndexedDB
-- Ensure browser supports IndexedDB
-
-### PWA Not Installing
-- Ensure app is served over HTTPS (or localhost)
-- Check `manifest.json` is properly configured
-- Verify service worker is registered
-
 ## 🚀 Production Deployment
 
 ### Backend
@@ -501,15 +471,3 @@ npm run view-data
 - `MONGODB_URI`: MongoDB connection string
 - `JWT_SECRET`: Secret key for JWT tokens (change in production!)
 - `NODE_ENV`: Environment (development/production)
-
-## 📄 License
-
-ISC
-
-## 💡 Support
-
-For issues or questions:
-- Check browser console for errors
-- Check server logs for backend issues
-- Check Network tab for API calls
-- Review MongoDB connection settings
