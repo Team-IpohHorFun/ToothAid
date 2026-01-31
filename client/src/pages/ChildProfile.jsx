@@ -134,12 +134,6 @@ const ChildProfile = ({ token }) => {
                   </p>
                 )}
 
-                {visit.followUpDate && (
-                  <p style={{ marginTop: '8px', fontSize: '14px', color: 'var(--color-warning)' }}>
-                    <strong>Follow-up:</strong> {formatDate(visit.followUpDate)}
-                  </p>
-                )}
-
                 {visit.notes && (
                   <p style={{ marginTop: '8px', fontSize: '14px', color: '#666' }}>
                     {visit.notes}

@@ -17,7 +17,6 @@ const AddVisit = ({ token }) => {
     missingTeeth: '',
     filledTeeth: '',
     treatmentTypes: [],
-    followUpDate: '',
     notes: ''
   });
   const [saving, setSaving] = useState(false);
@@ -81,7 +80,6 @@ const AddVisit = ({ token }) => {
         missingTeeth: formData.missingTeeth !== '' && formData.missingTeeth != null ? (isNaN(parseInt(formData.missingTeeth)) ? null : parseInt(formData.missingTeeth)) : null,
         filledTeeth: formData.filledTeeth !== '' && formData.filledTeeth != null ? (isNaN(parseInt(formData.filledTeeth)) ? null : parseInt(formData.filledTeeth)) : null,
         treatmentTypes: formData.treatmentTypes,
-        followUpDate: formData.followUpDate ? new Date(formData.followUpDate).toISOString() : null,
         notes: formData.notes.trim() || null,
         createdBy: username,
         createdAt: now
@@ -225,16 +223,6 @@ const AddVisit = ({ token }) => {
                 <label htmlFor={`treatment-${option}`}>{option}</label>
               </div>
             ))}
-          </div>
-
-          <div className="form-group">
-            <label>Follow-up Date (optional)</label>
-            <DateInput
-              name="followUpDate"
-              value={formData.followUpDate}
-              onChange={handleChange}
-              placeholder="MM/DD/YYYY"
-            />
           </div>
 
           <div className="form-group">

@@ -83,7 +83,6 @@ const seedData = async () => {
         missingTeeth: 0,
         filledTeeth: 1,
         treatmentTypes: ['Cleaning', 'Fluoride'],
-        followUpDate: new Date('2024-02-20'),
         notes: 'Initial screening completed',
         createdBy: 'demo',
         createdAt: new Date('2024-01-20')
@@ -99,7 +98,6 @@ const seedData = async () => {
         missingTeeth: 0,
         filledTeeth: 2,
         treatmentTypes: ['Filling'],
-        followUpDate: new Date('2024-03-20'),
         notes: 'Cavity filled',
         createdBy: 'demo',
         createdAt: new Date('2024-02-20')
@@ -115,7 +113,6 @@ const seedData = async () => {
         missingTeeth: 1,
         filledTeeth: 0,
         treatmentTypes: [],
-        followUpDate: new Date('2024-02-25'),
         notes: 'Severe case, needs attention',
         createdBy: 'demo',
         createdAt: new Date('2024-01-25')
@@ -131,7 +128,6 @@ const seedData = async () => {
         missingTeeth: 0,
         filledTeeth: 0,
         treatmentTypes: ['Cleaning'],
-        followUpDate: null,
         notes: 'Healthy teeth',
         createdBy: 'demo',
         createdAt: new Date('2024-01-30')

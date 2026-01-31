@@ -6,7 +6,6 @@ import {
   getAppointmentsByClinicDay,
   getChild,
   upsertAppointment,
-  addVisit,
   addToOutbox,
   performSync
 } from '../db/indexedDB';
@@ -61,40 +60,6 @@ const ClinicDayRoster = ({ token }) => {
 
       await upsertAppointment(updatedAppointment);
       await addToOutbox('UPSERT_APPOINTMENT', appointmentId, updatedAppointment);
-
-      // If status is MISSED, create a follow-up visit (Step 5)
-      if (newStatus === 'MISSED') {
-        const child = await getChild(appointment.childId);
-        if (child) {
-          // Calculate follow-up date (e.g., 2 weeks from clinic day)
-          const followUpDate = new Date(clinicDay.date);
-          followUpDate.setDate(followUpDate.getDate() + 14);
-
-          const visitId = `visit-${crypto.randomUUID()}`;
-          const now = new Date().toISOString();
-          const username = localStorage.getItem('username') || 'unknown';
-
-          const visitData = {
-            visitId,
-            childId: appointment.childId,
-            date: clinicDay.date,
-            type: 'FOLLOWUP',
-            painFlag: false,
-            swellingFlag: false,
-            decayedTeeth: null,
-            missingTeeth: null,
-            filledTeeth: null,
-            treatmentTypes: [],
-            followUpDate: followUpDate.toISOString(),
-            notes: `Missed appointment on ${new Date(clinicDay.date).toLocaleDateString()}. Reschedule needed.`,
-            createdBy: username,
-            createdAt: now
-          };
-
-          await addVisit(visitData);
-          await addToOutbox('ADD_VISIT', visitId, visitData);
-        }
-      }
 
       // Reload appointments
       const updatedAppointments = await getAppointmentsByClinicDay(clinicDayId);

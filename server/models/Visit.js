@@ -46,10 +46,6 @@ const visitSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
-  followUpDate: {
-    type: Date,
-    default: null
-  },
   notes: {
     type: String,
     default: null

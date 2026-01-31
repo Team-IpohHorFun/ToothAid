@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
-import { getHighRiskVisits, getFollowUpsDue, getOutboxOps, getAllChildren, getManualVisits } from '../db/indexedDB';
+import { getHighRiskVisits, getOutboxOps, getAllChildren, getManualVisits } from '../db/indexedDB';
 
 const Home = ({ setToken }) => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({
     highRiskCount: 0,
-    followUpsCount: 0,
     pendingOps: 0,
     totalChildren: 0,
     totalVisits: 0
@@ -17,9 +16,8 @@ const Home = ({ setToken }) => {
   useEffect(() => {
     const loadCounts = async () => {
       try {
-        const [highRisk, followUps, outbox, children, visits] = await Promise.all([
+        const [highRisk, outbox, children, visits] = await Promise.all([
           getHighRiskVisits(),
-          getFollowUpsDue(30),
           getOutboxOps(),
           getAllChildren(),
           getManualVisits()
@@ -27,7 +25,6 @@ const Home = ({ setToken }) => {
         
         setStats({
           highRiskCount: highRisk.length,
-          followUpsCount: followUps.length,
           pendingOps: outbox.length,
           totalChildren: children.length,
           totalVisits: visits.length
@@ -110,10 +107,6 @@ const Home = ({ setToken }) => {
           <div className="stat-value">{stats.highRiskCount}</div>
           <div className="stat-label">High-Risk</div>
         </div>
-        <div className="stat-card" style={{ background: 'linear-gradient(135deg, var(--color-warning) 0%, var(--color-warning-hover) 100%)' }}>
-          <div className="stat-value">{stats.followUpsCount}</div>
-          <div className="stat-label">Follow-ups</div>
-        </div>
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, var(--color-success) 0%, var(--color-success-hover) 100%)' }}>
           <div className="stat-value">{stats.totalChildren}</div>
           <div className="stat-label">Children</div>
@@ -138,27 +131,6 @@ const Home = ({ setToken }) => {
                 </h3>
                 <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: '14px' }}>
                   {stats.highRiskCount} {stats.highRiskCount === 1 ? 'case' : 'cases'} need attention
-                </p>
-              </div>
-              <div style={{ fontSize: '24px' }}>→</div>
-            </div>
-          </Link>
-        </div>
-      )}
-
-      {stats.followUpsCount > 0 && (
-        <div className="card" style={{ 
-          borderLeft: '4px solid var(--color-warning)',
-          marginBottom: '16px'
-        }}>
-          <Link to="/follow-ups" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <h3 style={{ margin: 0, marginBottom: '4px', color: 'var(--color-warning)' }}>
-                  Follow-ups Due
-                </h3>
-                <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: '14px' }}>
-                  {stats.followUpsCount} {stats.followUpsCount === 1 ? 'follow-up' : 'follow-ups'} scheduled
                 </p>
               </div>
               <div style={{ fontSize: '24px' }}>→</div>
@@ -194,7 +166,7 @@ const Home = ({ setToken }) => {
       )}
 
       {/* All Clear Message */}
-      {stats.highRiskCount === 0 && stats.followUpsCount === 0 && stats.pendingOps === 0 && (
+      {stats.highRiskCount === 0 && stats.pendingOps === 0 && (
         <div className="card" style={{ 
           textAlign: 'center',
           background: 'var(--color-success-soft)',

@@ -31,7 +31,6 @@ const Login = ({ setToken }) => {
       });
 
       if (!response.ok) {
-        // If not OK, try to get error message
         const errorText = await response.text();
         console.error('Login error response:', response.status, errorText);
         throw new Error(`Server error: ${response.status} ${response.statusText}. URL: ${fullUrl}`);
@@ -98,7 +97,6 @@ const Login = ({ setToken }) => {
       });
 
       if (!response.ok) {
-        // If not OK, try to get error message
         const errorText = await response.text();
         console.error('Register error response:', response.status, errorText);
         throw new Error(`Server error: ${response.status} ${response.statusText}. URL: ${fullUrl}`);
@@ -115,7 +113,6 @@ const Login = ({ setToken }) => {
         throw new Error(`Server error: ${response.status} ${response.statusText}. Expected JSON but got: ${contentType}`);
       }
 
-      // Auto-login after registration
       localStorage.setItem('token', data.token);
       localStorage.setItem('username', data.username);
       setToken(data.token);
@@ -127,98 +124,123 @@ const Login = ({ setToken }) => {
     }
   };
 
+  // Tooth icon SVG
+  const ToothIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2C9.5 2 7 3 6 5C5 7 5 9 5.5 11C6 13 6.5 15 7 17C7.5 19 8 21 9 22C9.5 22.5 10.5 22.5 11 21C11.5 19.5 12 18 12 18C12 18 12.5 19.5 13 21C13.5 22.5 14.5 22.5 15 22C16 21 16.5 19 17 17C17.5 15 18 13 18.5 11C19 9 19 7 18 5C17 3 14.5 2 12 2Z" />
+    </svg>
+  );
+
   return (
     <div className="login-container">
-      <div className="login-card">
-        <h1>ToothAid</h1>
-        <p className="subtitle">Dental Clinic Management</p>
-        
-        <form onSubmit={isRegistering ? handleRegister : handleSubmit}>
-          <div className="form-group">
-            <label>Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
+      <div className="login-content">
+        {/* Brand Section */}
+        <div className="login-brand">
+          <div className="login-icon">
+            <ToothIcon />
           </div>
-          
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+          <h1>ToothAid</h1>
+          <p className="subtitle">Dental Data & Impact Monitoring</p>
+        </div>
 
-          {isRegistering && (
+        {/* Form Section */}
+        <div className="login-form">
+          <form onSubmit={isRegistering ? handleRegister : handleSubmit}>
             <div className="form-group">
-              <label>Confirm Password</label>
+              <label>Username</label>
               <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter your username"
                 required
               />
             </div>
-          )}
+            
+            <div className="form-group">
+              <label>Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
+            </div>
 
-          {error && <div className="alert alert-danger">{error}</div>}
+            {isRegistering && (
+              <div className="form-group">
+                <label>Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your password"
+                  required
+                />
+              </div>
+            )}
 
-          {isRegistering ? (
-            <>
-              <button 
-                type="button" 
-                className="btn btn-primary btn-block"
-                onClick={handleRegister}
-                disabled={loading}
-              >
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-block"
-                onClick={() => {
-                  setIsRegistering(false);
-                  setError('');
-                  setConfirmPassword('');
-                }}
-              >
-                Back to Login
-              </button>
-            </>
-          ) : (
-            <>
-              <button 
-                type="submit" 
-                className="btn btn-primary btn-block"
-                disabled={loading}
-              >
-                {loading ? 'Logging in...' : 'Login'}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary btn-block"
-                onClick={handleDemo}
-              >
-                Use Demo Credentials
-              </button>
-              <button
-                type="button"
-                className="btn btn-success btn-block"
-                onClick={() => {
-                  setIsRegistering(true);
-                  setError('');
-                }}
-              >
-                Create New Account
-              </button>
-            </>
-          )}
-        </form>
+            {error && <div className="alert alert-danger">{error}</div>}
+
+            {isRegistering ? (
+              <>
+                <button 
+                  type="button" 
+                  className="btn btn-primary"
+                  onClick={handleRegister}
+                  disabled={loading}
+                >
+                  {loading ? 'Creating Account...' : 'Create Account'}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setIsRegistering(false);
+                    setError('');
+                    setConfirmPassword('');
+                  }}
+                >
+                  Back to Login
+                </button>
+              </>
+            ) : (
+              <>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  {loading ? 'Signing in...' : 'Sign In'}
+                </button>
+                
+                <div className="login-divider">
+                  <span>or</span>
+                </div>
+                
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleDemo}
+                >
+                  Use Demo Account
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={() => {
+                    setIsRegistering(true);
+                    setError('');
+                  }}
+                >
+                  Create New Account
+                </button>
+              </>
+            )}
+          </form>
+        </div>
+
       </div>
     </div>
   );

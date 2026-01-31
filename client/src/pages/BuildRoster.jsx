@@ -4,7 +4,6 @@ import NavBar from '../components/NavBar';
 import { 
   getClinicDay, 
   getHighRiskVisits, 
-  getFollowUpsDue,
   getAllChildren,
   getAppointmentsByClinicDay,
   getAllScheduledAppointments,
@@ -21,7 +20,6 @@ const BuildRoster = ({ token }) => {
   const [clinicDay, setClinicDay] = useState(null);
   const [appointments, setAppointments] = useState([]);
   const [highRiskVisits, setHighRiskVisits] = useState([]);
-  const [followUps, setFollowUps] = useState([]);
   const [routineChildren, setRoutineChildren] = useState([]);
   const [allScheduledAppointments, setAllScheduledAppointments] = useState([]);
   const [rosterChildren, setRosterChildren] = useState([]);
@@ -75,26 +73,15 @@ const BuildRoster = ({ token }) => {
       });
       setHighRiskVisits(filteredHighRisk);
 
-      // Load follow-ups
-      const followUpsList = await getFollowUpsDue(90); // 90 days
-      // Exclude already scheduled (no school filtering)
-      const filteredFollowUps = followUpsList.filter(v => {
-        if (!v.child) return false;
-        return !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId);
-      });
-      setFollowUps(filteredFollowUps);
-
-      // Load routine children (all children, excluding high-risk and follow-ups)
+      // Load routine children (all children, excluding high-risk)
       const allChildren = await getAllChildren();
       const highRiskChildIds = new Set(filteredHighRisk.map(v => v.childId));
-      const followUpChildIds = new Set(filteredFollowUps.map(v => v.childId));
       
       const routine = allChildren
         .filter(child => {
           return !rosterChildIds.has(child.childId) && 
                  !scheduledChildIds.has(child.childId) &&
-                 !highRiskChildIds.has(child.childId) &&
-                 !followUpChildIds.has(child.childId);
+                 !highRiskChildIds.has(child.childId);
         })
         .slice(0, 100); // Limit to first 100 for performance
       setRoutineChildren(routine);
@@ -213,7 +200,6 @@ const BuildRoster = ({ token }) => {
 
       // Remove child from all available lists immediately (so they disappear from UI right away)
       setHighRiskVisits(prev => prev.filter(v => v.childId !== childId));
-      setFollowUps(prev => prev.filter(v => v.childId !== childId));
       setRoutineChildren(prev => prev.filter(c => c.childId !== childId));
 
       // Reload all scheduled appointments
@@ -280,25 +266,15 @@ const BuildRoster = ({ token }) => {
         });
         setHighRiskVisits(filteredHighRisk);
 
-        // Reload follow-ups
-        const followUpsList = await getFollowUpsDue(90);
-        const filteredFollowUps = followUpsList.filter(v => {
-          if (!v.child) return false;
-          return !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId);
-        });
-        setFollowUps(filteredFollowUps);
-
         // Reload routine children
         const allChildren = await getAllChildren();
         const highRiskChildIds = new Set(filteredHighRisk.map(v => v.childId));
-        const followUpChildIds = new Set(filteredFollowUps.map(v => v.childId));
         
         const routine = allChildren
           .filter(child => {
             return !rosterChildIds.has(child.childId) && 
                    !scheduledChildIds.has(child.childId) &&
-                   !highRiskChildIds.has(child.childId) &&
-                   !followUpChildIds.has(child.childId);
+                   !highRiskChildIds.has(child.childId);
           })
           .slice(0, 100);
         setRoutineChildren(routine);
@@ -354,19 +330,15 @@ const BuildRoster = ({ token }) => {
       // Get roster child IDs
       const rosterChildIds = new Set(appointments.map(a => a.childId));
 
-      // Combine candidates: Emergency/High priority first, then follow-ups, then routine
+      // Combine candidates: Emergency/High priority first, then routine
       const highRiskCandidates = highRiskVisits
         .filter(v => v.tier <= 2 && v.child && !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId));
-      
-      const followUpCandidates = followUps
-        .filter(v => v.child && !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId));
       
       const routineCandidates = routineChildren
         .filter(c => !rosterChildIds.has(c.childId) && !scheduledChildIds.has(c.childId));
 
       const candidates = [
         ...highRiskCandidates,
-        ...followUpCandidates,
         ...routineCandidates
       ].slice(0, remaining);
 
@@ -407,8 +379,7 @@ const BuildRoster = ({ token }) => {
         const childId = candidate.childId || candidate.child?.childId;
         if (!childId) continue;
 
-        const reason = candidate.tier ? (candidate.tier === 1 ? 'EMERGENCY' : 'HIGH_PRIORITY') : 
-                      candidate.followUpDate ? 'FOLLOW_UP' : 'ROUTINE';
+        const reason = candidate.tier ? (candidate.tier === 1 ? 'EMERGENCY' : 'HIGH_PRIORITY') : 'ROUTINE';
         const tier = candidate.tier || null;
         const urgencyScore = candidate.urgencyScore || null;
 
@@ -469,7 +440,6 @@ const BuildRoster = ({ token }) => {
 
           // Remove all added children from available lists immediately
           setHighRiskVisits(prev => prev.filter(v => !addedChildIds.has(v.childId)));
-          setFollowUps(prev => prev.filter(v => !addedChildIds.has(v.childId)));
           setRoutineChildren(prev => prev.filter(c => !addedChildIds.has(c.childId)));
 
           // Reload all scheduled appointments
@@ -624,37 +594,6 @@ const BuildRoster = ({ token }) => {
                       visit.tier,
                       visit.urgencyScore
                     )}
-                    disabled={saving || isInRoster(visit.childId) || remaining <= 0}
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            ))}
-        </div>
-      )}
-
-      {/* Follow-ups Due */}
-      {followUps.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', marginBottom: '12px', color: 'var(--color-warning)' }}>
-            📅 Follow-ups Due ({followUps.length})
-          </h2>
-          {followUps
-            .filter(v => !isInRoster(v.childId))
-            .slice(0, 20)
-            .map(visit => (
-              <div key={visit.visitId} className="card" style={{ marginBottom: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ marginBottom: '4px' }}>{visit.child?.fullName || 'Unknown'}</h3>
-                    <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-                      Follow-up: {formatDate(visit.followUpDate)}
-                    </p>
-                  </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleAddToRoster(visit.childId, 'FOLLOW_UP')}
                     disabled={saving || isInRoster(visit.childId) || remaining <= 0}
                   >
                     Add

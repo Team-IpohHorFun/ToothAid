@@ -246,32 +246,6 @@ export const getHighRiskVisits = async () => {
   });
 };
 
-// Follow-ups due
-export const getFollowUpsDue = async (days = 30) => {
-  const today = new Date();
-  const futureDate = new Date(today);
-  futureDate.setDate(futureDate.getDate() + days);
-  
-  const visits = await db.visits
-    .filter(v => v.followUpDate !== null)
-    .toArray();
-  
-  const dueVisits = visits.filter(v => {
-    const followUp = new Date(v.followUpDate);
-    return followUp >= today && followUp <= futureDate;
-  });
-  
-  // Get child info
-  const visitsWithChildren = await Promise.all(
-    dueVisits.map(async (visit) => {
-      const child = await getChild(visit.childId);
-      return { ...visit, child };
-    })
-  );
-  
-  return visitsWithChildren.sort((a, b) => new Date(a.followUpDate) - new Date(b.followUpDate));
-};
-
 // Clinic Day operations
 export const getAllClinicDays = async () => {
   return await db.clinicDays.orderBy('date').reverse().toArray();

@@ -7,7 +7,6 @@ import RegisterChild from './pages/RegisterChild';
 import ChildProfile from './pages/ChildProfile';
 import AddVisit from './pages/AddVisit';
 import HighRiskList from './pages/HighRiskList';
-import FollowUpsList from './pages/FollowUpsList';
 import Graphs from './pages/Graphs';
 import SyncPage from './pages/SyncPage';
 import ClinicDaysList from './pages/ClinicDaysList';
@@ -69,10 +68,6 @@ function App() {
           <Route 
             path="/high-risk" 
             element={token ? <HighRiskList /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/follow-ups" 
-            element={token ? <FollowUpsList /> : <Navigate to="/login" />} 
           />
           <Route 
             path="/graphs" 

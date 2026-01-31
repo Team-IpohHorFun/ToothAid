@@ -7,12 +7,11 @@ An offline-first Progressive Web App (PWA) for managing dental clinic operations
 ### Core Functionality
 - ✅ **Child Registration** - Register children with duplicate detection
 - ✅ **Search & Browse** - Search children by name, school, or barangay
-- ✅ **Visit Management** - Record screening, treatment, and follow-up visits
+- ✅ **Visit Management** - Record screening and treatment visits
 - ✅ **DMFT Tracking** - Track Decayed, Missing, and Filled Teeth
 - ✅ **High-Risk Case Tracking** - Identify and monitor cases with pain or swelling flags
-- ✅ **Follow-up Reminders** - Track and manage follow-up appointments
 - ✅ **Clinic Day Management** - Create and manage clinic days with capacity planning
-- ✅ **Appointment Scheduling** - Build rosters with priority-based scheduling (Emergency, High Priority, Follow-up, Routine)
+- ✅ **Appointment Scheduling** - Build rosters with priority-based scheduling (Emergency, High Priority, Routine)
 - ✅ **Time Window Management** - Schedule appointments in AM, PM, or Full Day slots
 - ✅ **Statistics & Graphs** - Comprehensive data visualization with interactive charts
 - ✅ **Full Offline Support** - Works completely offline with IndexedDB
@@ -21,27 +20,40 @@ An offline-first Progressive Web App (PWA) for managing dental clinic operations
 
 ### Statistics & Analytics
 
-The Graphs page provides comprehensive data visualization:
+The Graphs page provides comprehensive data visualization with swipeable slides:
 
-1. **Average DMFT Over Time** (Line Chart)
-   - Monthly average DMFT scores
+1. **Average Decayed Teeth (D) per Child** (Line Chart)
+   - Monthly average of decayed teeth
    - Uses latest visit per child per month
-   - Tracks trends over time
+   - Shows all months in range (missing months display as 0)
 
-2. **Average DMFT by School/Grade** (Bar Chart with Toggle)
-   - View DMFT averages by school or grade
-   - Toggle between views on the same screen
-   - Color-coded bars (green/yellow/red) based on DMFT values
+2. **% of Children with ≥1 Decayed Tooth** (Line Chart)
+   - Monthly percentage of children with at least one decayed tooth
+   - Uses latest visit per child per month
 
-3. **Treatments by Type** (Pie Chart)
-   - Distribution of treatment types: Filling, Extraction, Fluoride, Sealant, SDF
+3. **F/DMFT Ratio** (Line Chart)
+   - Monthly ratio of Filled teeth to total DMFT (population-level)
+   - Higher ratio indicates more treatment coverage
+
+4. **Treatments by Type** (Pie Chart)
+   - Distribution of treatment types: Filling, Extraction, Fluoride, Sealant, SDF, Cleaning, Other
    - Shows percentages and counts
    - Counts each treatment occurrence (multiple treatments per visit allowed)
 
-4. **Treatments by Month/School** (Stacked Bar Chart with Toggle)
-   - View treatments grouped by month or school
-   - Stacked bars show treatment type breakdown
-   - Only includes visits with actual treatments (excludes screening-only visits)
+5. **Treatments by School (Top 10)** (Stacked Bar Chart)
+   - Treatment breakdown by school
+   - Stacked bars show treatment type distribution
+   - Only includes visits with actual treatments
+
+6. **Average DMFT by School (Top 10)** (Bar Chart)
+   - Average DMFT score per school
+   - Uses each child's overall latest visit (one observation per child)
+   - Shows top 10 schools by highest average DMFT
+
+7. **Average DMFT Over Time** (Line Chart)
+   - Monthly average DMFT scores
+   - Uses latest visit per child per month
+   - Tracks trends over time
 
 ### Clinic Day & Appointment Management
 
@@ -50,14 +62,14 @@ The app includes comprehensive clinic day and appointment scheduling features:
 1. **Clinic Day Creation**
    - Create clinic days with date, school, and capacity settings
    - Set overall capacity or split into AM/PM capacity
+   - **AM + PM capacity must equal total capacity** (no wasted slots)
    - Add notes for clinic day planning
 
 2. **Roster Building**
    - Build appointment rosters with priority-based scheduling
-   - Four priority tiers: Emergency, High Priority, Follow-up, Routine
+   - Priority tiers: Emergency, High Priority, Routine
    - Automatic prioritization based on:
      - High-risk cases (pain/swelling flags)
-     - Follow-up due dates
      - Treatment history
    - Time window assignment (AM, PM, or Full Day)
    - Slot number management
@@ -74,9 +86,8 @@ The app includes comprehensive clinic day and appointment scheduling features:
 - **Search Child** - Search and browse children
 - **Register Child** - Register new children with duplicate detection
 - **Child Profile** - View child details and visit timeline
-- **Add Visit** - Record screening, treatment, or follow-up visits
+- **Add Visit** - Record screening or treatment visits
 - **High-Risk List** - View and manage high-risk cases
-- **Follow-ups List** - Track upcoming follow-up appointments
 - **Clinic Days List** - View all scheduled clinic days
 - **Create Clinic Day** - Create new clinic days with capacity settings
 - **Build Roster** - Build appointment rosters with priority-based scheduling
@@ -129,7 +140,6 @@ toothaid/
     │   │   ├── ChildProfile.jsx
     │   │   ├── AddVisit.jsx
     │   │   ├── HighRiskList.jsx
-    │   │   ├── FollowUpsList.jsx
     │   │   ├── Graphs.jsx
     │   │   └── SyncPage.jsx
     │   ├── components/   # Reusable components
@@ -298,7 +308,6 @@ npm run dev
 - `painFlag`, `swellingFlag` (boolean)
 - `decayedTeeth`, `missingTeeth`, `filledTeeth` (optional integers)
 - `treatmentTypes[]` (array: Filling, Extraction, Fluoride, Sealant, SDF, Cleaning, Other)
-- `followUpDate` (optional)
 - `notes` (optional)
 - `createdAt`
 
@@ -338,11 +347,12 @@ npm run dev
 - Calculates average DMFT across unique children
 - Each child contributes one observation per month
 
-### Average DMFT by School/Grade
-- Uses overall latest visit per child
-- Groups by school or grade
-- Calculates average DMFT per group
+### Average DMFT by School (Top 10)
+- Uses overall latest visit per child (across all time)
+- Groups children by school
+- Calculates average DMFT per school = sum(DMFT) / count(children)
 - Each child contributes one observation
+- Shows top 10 schools sorted by highest average
 
 ### Treatment Charts
 - **Counts each treatment occurrence** (double counting allowed)

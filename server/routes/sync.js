@@ -63,7 +63,6 @@ router.post('/push', authenticateToken, async (req, res) => {
             missingTeeth: payload.missingTeeth !== undefined ? payload.missingTeeth : null,
             filledTeeth: payload.filledTeeth !== undefined ? payload.filledTeeth : null,
             treatmentTypes: payload.treatmentTypes || [],
-            followUpDate: payload.followUpDate || null,
             notes: payload.notes || null,
             createdBy: payload.createdBy || username,
             createdAt: payload.createdAt || new Date()
