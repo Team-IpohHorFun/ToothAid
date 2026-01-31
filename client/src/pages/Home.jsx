@@ -58,12 +58,12 @@ const Home = ({ setToken }) => {
       <div className="page-header" style={{ 
         background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
         color: 'white',
-        marginBottom: '24px'
+        marginBottom: '16px'
       }}>
         <div>
-          <h1 style={{ color: 'white', marginBottom: '4px', fontSize: '28px' }}>ToothAid</h1>
-          <p style={{ color: 'rgba(255,255,255,0.9)', margin: 0, fontSize: '16px' }}>
-            Dental Data & Impact Monitoring System
+          <h1 style={{ color: 'white', marginBottom: '4px', fontSize: '24px' }}>ToothAid</h1>
+          <p style={{ color: 'rgba(255,255,255,0.9)', margin: 0, fontSize: '14px' }}>
+            Dental Data & Impact Monitoring
           </p>
         </div>
       </div>
@@ -99,9 +99,9 @@ const Home = ({ setToken }) => {
       {/* Stats Grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-        gap: '12px',
-        marginBottom: '24px'
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '10px',
+        marginBottom: '16px'
       }}>
         <div className="stat-card" style={{ background: 'linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-hover) 100%)' }}>
           <div className="stat-value">{stats.highRiskCount}</div>

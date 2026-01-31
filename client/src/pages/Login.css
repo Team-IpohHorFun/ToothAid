@@ -15,8 +15,6 @@
   padding: 16px;
   overflow: hidden;
   box-sizing: border-box;
-  overscroll-behavior: none;
-  touch-action: none;
 }
 
 /* Animated background circles */
