@@ -78,9 +78,11 @@ const DateInput = ({ name, value, onChange, required, placeholder = "Choose a da
     setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
   };
 
-  // Select a date
-  const selectDate = (day) => {
-    const newDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day);
+  // Select a date (day number uses viewDate, or pass full Date object)
+  const selectDate = (dayOrDate) => {
+    const newDate = dayOrDate instanceof Date 
+      ? dayOrDate 
+      : new Date(viewDate.getFullYear(), viewDate.getMonth(), dayOrDate);
     onChange({
       target: {
         name,
@@ -370,7 +372,7 @@ const DateInput = ({ name, value, onChange, required, placeholder = "Choose a da
             onClick={() => {
               const today = new Date();
               setViewDate(today);
-              selectDate(today.getDate());
+              selectDate(today);  // Pass full Date object
             }}
             style={{
               width: '100%',
