@@ -71,9 +71,9 @@ svg * {
 
   --focus-ring: 0 0 0 3px rgba(13, 148, 136, 0.22);
 
-  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica',
+  --font-body: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica',
     'Arial', sans-serif;
-  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica',
+  --font-heading: 'Public Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', 'Helvetica',
     'Arial', sans-serif;
 }
 
@@ -106,6 +106,64 @@ h1, h2, h3, h4, h5, h6 {
   position: sticky;
   top: 0;
   z-index: 1000;
+}
+
+/* Sync Toast Notification */
+.sync-toast {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 2000;
+  cursor: pointer;
+  animation: toastSlide 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.sync-toast.success {
+  background: var(--color-success);
+  color: white;
+}
+
+.sync-toast.error {
+  background: var(--color-accent);
+  color: white;
+}
+
+@keyframes toastSlide {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Syncing Indicator */
+.syncing-indicator {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  background: var(--color-primary);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: syncPulse 1s ease-in-out infinite;
+}
+
+@keyframes syncPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
 }
 
 .container {

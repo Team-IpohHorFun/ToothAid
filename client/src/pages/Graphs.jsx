@@ -11,6 +11,14 @@ const Graphs = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const containerRef = useRef(null);
   
+  // Headline metrics state
+  const [metrics, setMetrics] = useState({
+    totalChildren: 0,
+    totalVisits: 0,
+    schoolsCovered: 0,
+    monthsOfData: 0
+  });
+  
   const [chartData, setChartData] = useState({
     avgDecayedTeeth: [],          // Chart 1: Average D per child (monthly)
     pctWithDecay: [],              // Chart 2: % with ≥1 decayed tooth (monthly)
@@ -170,6 +178,15 @@ const Graphs = () => {
         const allMonths = monthKeys.length > 0
           ? getAllMonthsInRange(monthKeys[0], monthKeys[monthKeys.length - 1])
           : [];
+
+        // Compute headline metrics
+        const uniqueSchools = new Set(children.map(c => c.school).filter(Boolean));
+        setMetrics({
+          totalChildren: children.length,
+          totalVisits: visits.length,
+          schoolsCovered: uniqueSchools.size,
+          monthsOfData: monthKeys.length
+        });
 
         // Line charts use allMonths so x-axis has equal time intervals; missing months show as 0
         const valueForMonth = (monthKey) => {
@@ -549,15 +566,12 @@ const Graphs = () => {
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
             <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Treatments by School (Top 10)</h2>
-            <ResponsiveContainer width="100%" height={350} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-              <BarChart data={chartData.treatmentsBySchool} margin={{ top: 5, right: 20, bottom: 60, left: 0 }} style={{ outline: 'none' }}>
+            <ResponsiveContainer width="100%" height={280} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+              <BarChart data={chartData.treatmentsBySchool} margin={{ top: 5, right: 20, bottom: 10, left: 0 }} style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="school" 
-                  angle={-45} 
-                  textAnchor="end" 
-                  height={80}
-                  interval={0}
+                  hide={true}
                 />
                 <YAxis />
                 <Tooltip 
@@ -573,6 +587,33 @@ const Graphs = () => {
                 <Bar dataKey="Other" stackId="a" fill={colors.Other} />
               </BarChart>
             </ResponsiveContainer>
+            {/* School Names Legend */}
+            <div style={{ 
+              marginTop: '16px', 
+              paddingTop: '16px',
+              borderTop: '1px solid #e0e0e0'
+            }}>
+              <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>Schools (left to right):</p>
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: '8px 16px'
+              }}>
+                {chartData.treatmentsBySchool.map((entry, index) => (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span style={{ 
+                      fontSize: '12px', 
+                      fontWeight: '600',
+                      color: 'var(--color-primary)',
+                      minWidth: '20px'
+                    }}>
+                      {index + 1}.
+                    </span>
+                    <span style={{ fontSize: '14px', color: '#333' }}>{entry.school}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         );
 
@@ -674,7 +715,7 @@ const Graphs = () => {
     return (
       <div className="container">
         <div className="page-header">
-          <h1>Statistics & Graphs</h1>
+          <h1>Reports</h1>
           <p>Data visualization and insights</p>
         </div>
         <div className="card">
@@ -690,8 +731,120 @@ const Graphs = () => {
   return (
     <div className="container">
       <div className="page-header">
-        <h1>Statistics & Graphs</h1>
+        <h1>Reports</h1>
         <p>Data visualization and insights</p>
+      </div>
+
+      {/* Dataset Overview Section */}
+      <div style={{ marginTop: '8px', marginBottom: '28px' }}>
+        {/* Section Title */}
+        <div style={{
+          fontSize: '12px',
+          fontWeight: '400',
+          color: '#888',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          marginBottom: '10px',
+          paddingLeft: '2px'
+        }}>
+          Dataset Overview
+        </div>
+
+        {/* Metrics Container Card */}
+        <div style={{
+          background: '#f8f9fa',
+          border: '1px solid #e9ecef',
+          borderRadius: '12px',
+          padding: '14px 16px'
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: '10px 16px'
+          }}>
+            <div style={{ padding: '6px 8px' }}>
+              <div style={{ 
+                fontSize: '20px', 
+                fontWeight: '600', 
+                color: '#495057',
+                lineHeight: 1
+              }}>
+                {metrics.totalChildren}
+              </div>
+              <div style={{ 
+                fontSize: '13px', 
+                color: '#6c757d',
+                marginTop: '2px'
+              }}>
+                Total Children
+              </div>
+            </div>
+            <div style={{ padding: '6px 8px' }}>
+              <div style={{ 
+                fontSize: '20px', 
+                fontWeight: '600', 
+                color: '#495057',
+                lineHeight: 1
+              }}>
+                {metrics.totalVisits}
+              </div>
+              <div style={{ 
+                fontSize: '13px', 
+                color: '#6c757d',
+                marginTop: '2px'
+              }}>
+                Total Visits
+              </div>
+            </div>
+            <div style={{ padding: '6px 8px' }}>
+              <div style={{ 
+                fontSize: '20px', 
+                fontWeight: '600', 
+                color: '#495057',
+                lineHeight: 1
+              }}>
+                {metrics.schoolsCovered}
+              </div>
+              <div style={{ 
+                fontSize: '13px', 
+                color: '#6c757d',
+                marginTop: '2px'
+              }}>
+                Schools Covered
+              </div>
+            </div>
+            <div style={{ padding: '6px 8px' }}>
+              <div style={{ 
+                fontSize: '20px', 
+                fontWeight: '600', 
+                color: '#495057',
+                lineHeight: 1
+              }}>
+                {metrics.monthsOfData}
+              </div>
+              <div style={{ 
+                fontSize: '13px', 
+                color: '#6c757d',
+                marginTop: '2px'
+              }}>
+                Months of Data
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Section Label */}
+      <div style={{
+        fontSize: '12px',
+        fontWeight: '400',
+        color: '#888',
+        textTransform: 'uppercase',
+        letterSpacing: '0.5px',
+        marginBottom: '12px',
+        paddingLeft: '2px'
+      }}>
+        Trends
       </div>
 
       {/* Navigation buttons */}
@@ -699,7 +852,7 @@ const Graphs = () => {
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        marginBottom: '16px',
+        marginBottom: '12px',
         padding: '0 4px'
       }}>
         <button

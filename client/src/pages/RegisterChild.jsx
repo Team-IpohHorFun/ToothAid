@@ -2,89 +2,142 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import DateInput from '../components/DateInput';
-import { upsertChild, addToOutbox, checkDuplicates, performSync } from '../db/indexedDB';
+import { searchChildren, getAllChildren, addVisit, addToOutbox, performSync } from '../db/indexedDB';
 
 const RegisterChild = ({ token }) => {
   const navigate = useNavigate();
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedChild, setSelectedChild] = useState(null);
+  
+  // Visit form state (exact same as original AddVisit)
   const [formData, setFormData] = useState({
-    fullName: '',
-    dob: '',
-    age: '',
-    sex: '',
-    school: '',
-    grade: '',
-    barangay: '',
-    guardianPhone: ''
+    date: new Date().toISOString().split('T')[0],
+    type: 'SCREENING',
+    painFlag: false,
+    swellingFlag: false,
+    decayedTeeth: '',
+    missingTeeth: '',
+    filledTeeth: '',
+    treatmentTypes: [],
+    notes: ''
   });
-  const [duplicates, setDuplicates] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  const treatmentOptions = [
+    'Cleaning',
+    'Fluoride',
+    'Filling',
+    'Extraction',
+    'Sealant',
+    'SDF',
+    'Other'
+  ];
+
+  // Load all children on mount
   useEffect(() => {
-    const checkDups = async () => {
-      if (formData.fullName && formData.school && (formData.dob || formData.age)) {
-        const childData = {
-          ...formData,
-          dob: formData.dob || null,
-          age: formData.age ? parseInt(formData.age) : null
-        };
-        const dups = await checkDuplicates(childData);
-        setDuplicates(dups);
-      } else {
-        setDuplicates([]);
-      }
-    };
-    
-    checkDups();
-  }, [formData.fullName, formData.school, formData.dob, formData.age]);
+    loadAllChildren();
+  }, []);
+
+  const loadAllChildren = async () => {
+    setLoading(true);
+    const all = await getAllChildren();
+    const sorted = all.sort((a, b) => a.fullName.localeCompare(b.fullName));
+    setResults(sorted);
+    setLoading(false);
+  };
+
+  // Filter results when query changes
+  useEffect(() => {
+    if (query.trim().length >= 2) {
+      setLoading(true);
+      searchChildren(query).then(found => {
+        const sorted = found.sort((a, b) => a.fullName.localeCompare(b.fullName));
+        setResults(sorted);
+        setLoading(false);
+      });
+    } else if (query.trim().length === 0) {
+      loadAllChildren();
+    }
+  }, [query]);
+
+  const handleSelectChild = (child) => {
+    setSelectedChild(child);
+    setFormData({
+      date: new Date().toISOString().split('T')[0],
+      type: 'SCREENING',
+      painFlag: false,
+      swellingFlag: false,
+      decayedTeeth: '',
+      missingTeeth: '',
+      filledTeeth: '',
+      treatmentTypes: [],
+      notes: ''
+    });
+    setError('');
+  };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    if (type === 'checkbox') {
+      if (name === 'painFlag' || name === 'swellingFlag') {
+        setFormData(prev => ({ ...prev, [name]: checked }));
+      } else {
+        // Treatment type checkbox
+        setFormData(prev => ({
+          ...prev,
+          treatmentTypes: checked
+            ? [...prev.treatmentTypes, value]
+            : prev.treatmentTypes.filter(t => t !== value)
+        }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!selectedChild) return;
+    
     setError('');
     setSaving(true);
 
     try {
-      const childId = `child-${crypto.randomUUID()}`;
+      const visitId = `visit-${crypto.randomUUID()}`;
       const now = new Date().toISOString();
       const username = localStorage.getItem('username') || 'unknown';
       
-      const childData = {
-        childId,
-        fullName: formData.fullName.trim(),
-        dob: formData.dob || null,
-        age: formData.age ? parseInt(formData.age) : null,
-        sex: formData.sex,
-        school: formData.school.trim(),
-        grade: formData.grade.trim() || null,
-        barangay: formData.barangay.trim(),
-        guardianPhone: formData.guardianPhone.trim() || null,
+      const visitData = {
+        visitId,
+        childId: selectedChild.childId,
+        date: new Date(formData.date).toISOString(),
+        type: formData.type,
+        painFlag: formData.painFlag,
+        swellingFlag: formData.swellingFlag,
+        decayedTeeth: formData.decayedTeeth !== '' && formData.decayedTeeth != null ? (isNaN(parseInt(formData.decayedTeeth)) ? null : parseInt(formData.decayedTeeth)) : null,
+        missingTeeth: formData.missingTeeth !== '' && formData.missingTeeth != null ? (isNaN(parseInt(formData.missingTeeth)) ? null : parseInt(formData.missingTeeth)) : null,
+        filledTeeth: formData.filledTeeth !== '' && formData.filledTeeth != null ? (isNaN(parseInt(formData.filledTeeth)) ? null : parseInt(formData.filledTeeth)) : null,
+        treatmentTypes: formData.treatmentTypes,
+        notes: formData.notes.trim() || null,
         createdBy: username,
-        updatedBy: username,
-        createdAt: now,
-        updatedAt: now
+        createdAt: now
       };
 
-      // Save to IndexedDB
-      await upsertChild(childData);
-      
-      // Add to outbox
-      await addToOutbox('UPSERT_CHILD', childId, childData);
+      await addVisit(visitData);
+      await addToOutbox('ADD_VISIT', visitId, visitData);
 
-      // Try to sync if online
       if (navigator.onLine && token) {
         try {
           await performSync(token);
         } catch (syncError) {
-          console.error('Sync failed, but child saved locally:', syncError);
+          console.error('Sync failed, but visit saved locally:', syncError);
         }
       }
 
-      navigate(`/child/${childId}`);
+      navigate(`/child/${selectedChild.childId}`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -92,141 +145,216 @@ const RegisterChild = ({ token }) => {
     }
   };
 
-  const formatDate = (date) => {
-    if (!date) return '';
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return '';
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${month}/${day}/${year}`;
-  };
-
   return (
     <div className="container">
+      {/* Header changes based on whether child is selected */}
       <div className="page-header">
-        <h1>Register New Child</h1>
-        <p>Enter child information</p>
+        <h1>Add Visit</h1>
+        <p>{selectedChild ? selectedChild.fullName : 'Select a child first'}</p>
       </div>
 
-      {duplicates.length > 0 && (
-        <div className="alert alert-warning">
-          <strong>⚠️ Possible Duplicate Detected:</strong>
-          <ul style={{ marginTop: '8px', marginLeft: '20px' }}>
-            {duplicates.map(dup => (
-              <li key={dup.childId}>
-                {dup.fullName} - {dup.school} 
-                {dup.dob && ` (DOB: ${formatDate(dup.dob)})`}
-                {dup.age && ` (Age: ${dup.age})`}
-              </li>
-            ))}
-          </ul>
-          <p style={{ marginTop: '8px' }}>Please verify this is not a duplicate before proceeding.</p>
-        </div>
-      )}
-
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      <form onSubmit={handleSubmit}>
-        <div className="card">
+      {/* Child Selection View */}
+      {!selectedChild ? (
+        <>
           <div className="form-group">
-            <label>Full Name *</label>
             <input
               type="text"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              required
+              placeholder="Search by name, school, or barangay..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
             />
           </div>
 
-          <div className="form-group">
-            <label>Date of Birth (or leave blank and enter age)</label>
-            <DateInput
-              name="dob"
-              value={formData.dob}
-              onChange={handleChange}
-              placeholder="MM/DD/YYYY"
-            />
-          </div>
+          {loading && <div className="loading">Searching...</div>}
 
-          <div className="form-group">
-            <label>Age (if DOB unknown)</label>
-            <input
-              type="number"
-              name="age"
-              value={formData.age}
-              onChange={handleChange}
-              min="0"
-              max="18"
-            />
-          </div>
+          {!loading && results.length > 0 && (
+            <div>
+              {results.map(child => (
+                <div 
+                  key={child.childId} 
+                  className="card" 
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => handleSelectChild(child)}
+                >
+                  <h3 style={{ marginBottom: '8px' }}>{child.fullName}</h3>
+                  <p style={{ color: '#666', fontSize: '14px', marginBottom: '4px' }}>
+                    {child.school} • {child.barangay}
+                  </p>
+                  {child.grade && (
+                    <p style={{ color: '#666', fontSize: '14px', marginBottom: '4px' }}>
+                      {child.grade}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
 
-          <div className="form-group">
-            <label>Sex *</label>
-            <select name="sex" value={formData.sex} onChange={handleChange} required>
-              <option value="" disabled>Select Sex</option>
-              <option value="M">Male</option>
-              <option value="F">Female</option>
-            </select>
-          </div>
+          {!loading && query.trim().length >= 2 && results.length === 0 && (
+            <div className="empty-state">
+              <p>No children found matching "{query}"</p>
+            </div>
+          )}
 
-          <div className="form-group">
-            <label>School *</label>
-            <input
-              type="text"
-              name="school"
-              value={formData.school}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Grade</label>
-            <select name="grade" value={formData.grade} onChange={handleChange}>
-              <option value="" disabled>Select Grade</option>
-              <option value="Kindergarten">Kindergarten</option>
-              <option value="1st Grade">1st Grade</option>
-              <option value="2nd Grade">2nd Grade</option>
-              <option value="3rd Grade">3rd Grade</option>
-              <option value="4th Grade">4th Grade</option>
-              <option value="5th Grade">5th Grade</option>
-              <option value="6th Grade">6th Grade</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Barangay *</label>
-            <input
-              type="text"
-              name="barangay"
-              value={formData.barangay}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Guardian Phone</label>
-            <input
-              type="tel"
-              name="guardianPhone"
-              value={formData.guardianPhone}
-              onChange={handleChange}
-              placeholder="09123456789"
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            className="btn btn-primary btn-block"
-            disabled={saving}
+          {!loading && query.trim().length === 0 && results.length === 0 && (
+            <div className="empty-state">
+              <p>No children registered yet. Register children first in the Children tab.</p>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          {/* Selected Child Header */}
+          <div 
+            className="card" 
+            style={{ 
+              background: '#e8f4fd', 
+              borderLeft: '4px solid #007bff',
+              marginBottom: '16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
           >
-            {saving ? 'Saving...' : 'Register Child'}
-          </button>
-        </div>
-      </form>
+            <div>
+              <h3 style={{ marginBottom: '4px' }}>{selectedChild.fullName}</h3>
+              <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
+                {selectedChild.school} • {selectedChild.barangay}
+              </p>
+            </div>
+            <button 
+              type="button"
+              onClick={() => setSelectedChild(null)}
+              className="btn btn-secondary"
+              style={{ padding: '8px 16px' }}
+            >
+              Change
+            </button>
+          </div>
+
+          {error && <div className="alert alert-danger">{error}</div>}
+
+          {/* Visit Form - EXACT same form as original AddVisit */}
+          <form onSubmit={handleSubmit}>
+            <div className="card">
+              <div className="form-group">
+                <label>Date *</label>
+                <DateInput
+                  name="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  required
+                  placeholder="MM/DD/YYYY"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Visit Type *</label>
+                <select name="type" value={formData.type} onChange={handleChange} required>
+                  <option value="SCREENING">Screening</option>
+                  <option value="TREATMENT">Treatment</option>
+                  <option value="FOLLOWUP">Follow-up</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Flags</label>
+                <div className="checkbox-group">
+                  <input
+                    type="checkbox"
+                    id="painFlag"
+                    name="painFlag"
+                    checked={formData.painFlag}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="painFlag">Pain</label>
+                </div>
+                <div className="checkbox-group">
+                  <input
+                    type="checkbox"
+                    id="swellingFlag"
+                    name="swellingFlag"
+                    checked={formData.swellingFlag}
+                    onChange={handleChange}
+                  />
+                  <label htmlFor="swellingFlag">Swelling</label>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Decayed Teeth (optional)</label>
+                <input
+                  type="number"
+                  name="decayedTeeth"
+                  value={formData.decayedTeeth}
+                  onChange={handleChange}
+                  min="0"
+                  step="1"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Missing Teeth (optional)</label>
+                <input
+                  type="number"
+                  name="missingTeeth"
+                  value={formData.missingTeeth}
+                  onChange={handleChange}
+                  min="0"
+                  step="1"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Filled Teeth (optional)</label>
+                <input
+                  type="number"
+                  name="filledTeeth"
+                  value={formData.filledTeeth}
+                  onChange={handleChange}
+                  min="0"
+                  step="1"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Treatment Types</label>
+                {treatmentOptions.map(option => (
+                  <div key={option} className="checkbox-group">
+                    <input
+                      type="checkbox"
+                      id={`treatment-${option}`}
+                      name="treatmentTypes"
+                      value={option}
+                      checked={formData.treatmentTypes.includes(option)}
+                      onChange={handleChange}
+                    />
+                    <label htmlFor={`treatment-${option}`}>{option}</label>
+                  </div>
+                ))}
+              </div>
+
+              <div className="form-group">
+                <label>Notes (optional)</label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  rows="3"
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                className="btn btn-primary btn-block"
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Visit'}
+              </button>
+            </div>
+          </form>
+        </>
+      )}
 
       <NavBar />
     </div>
