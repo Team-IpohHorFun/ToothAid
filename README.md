@@ -39,16 +39,19 @@ The Graphs page provides comprehensive data visualization with swipeable slides:
    - Distribution of treatment types: Filling, Extraction, Fluoride, Sealant, SDF, Cleaning, Other
    - Shows percentages and counts
    - Counts each treatment occurrence (multiple treatments per visit allowed)
+   - Clean legend layout with divider line
 
 5. **Treatments by School (Top 10)** (Stacked Bar Chart)
    - Treatment breakdown by school
    - Stacked bars show treatment type distribution
    - Only includes visits with actual treatments
+   - Row-by-row school legend for readability
 
 6. **Average DMFT by School (Top 10)** (Bar Chart)
    - Average DMFT score per school
    - Uses each child's overall latest visit (one observation per child)
    - Shows top 10 schools by highest average DMFT
+   - Row-by-row legend with DMFT values
 
 7. **Average DMFT Over Time** (Line Chart)
    - Monthly average DMFT scores
@@ -80,20 +83,24 @@ The app includes comprehensive clinic day and appointment scheduling features:
    - Manage capacity across time windows
    - Remove appointments from roster
 
+### UI Design
+- **Modern Page Headers** - Beautiful teal gradient headers with decorative icons
+- **PWA Ready** - Custom tooth icon, installable on home screen
+- **Consistent Branding** - ToothAid branding throughout the app
+
 ### UI Screens
-- **Login** - Authentication with demo mode
+- **Login** - Authentication with demo mode and tooth logo
 - **Home** - Dashboard with quick actions and statistics
-- **Search Child** - Search and browse children
-- **Register Child** - Register new children with duplicate detection
-- **Child Profile** - View child details and visit timeline
-- **Add Visit** - Record screening or treatment visits
-- **High-Risk List** - View and manage high-risk cases
-- **Clinic Days List** - View all scheduled clinic days
+- **Children** - Search and browse children (user group icon)
+- **Add Visit** - Record screening or treatment visits (clipboard icon)
+- **Child Profile** - View child details and visit timeline (profile icon)
+- **High-Risk Cases** - View and manage high-risk cases (alert icon)
+- **Clinic Days** - View all scheduled clinic days (calendar icon)
 - **Create Clinic Day** - Create new clinic days with capacity settings
-- **Build Roster** - Build appointment rosters with priority-based scheduling
+- **Build Roster** - Build appointment rosters with priority-based scheduling (roster icon)
 - **Clinic Day Roster** - View and manage appointments for a clinic day
-- **Graphs** - Interactive statistics and data visualization
-- **Sync** - Manual sync and sync status
+- **Reports** - Interactive statistics and data visualization (chart icon)
+- **Sync** - Manual sync and sync status (sync icon)
 
 ## 🛠 Tech Stack
 
@@ -148,6 +155,7 @@ ToothAid/
 │   │   │   └── SyncPage.jsx
 │   │   ├── components/   # Reusable components
 │   │   │   ├── NavBar.jsx
+│   │   │   ├── PageHeader.jsx  # Beautiful page headers with icons
 │   │   │   └── DateInput.jsx
 │   │   ├── config.js     # API configuration
 │   │   ├── App.jsx
@@ -155,7 +163,8 @@ ToothAid/
 │   │   ├── fonts.css
 │   │   └── main.jsx
 │   ├── public/
-│   │   └── vite.svg
+│   │   ├── tooth-icon.svg    # App icon (PWA/favicon)
+│   │   └── manifest.json     # PWA manifest
 │   ├── vite.config.js
 │   ├── index.html
 │   └── package.json
@@ -419,7 +428,8 @@ The app is optimized for mobile devices:
 - Large touch targets (min 48px height)
 - Bottom navigation bar with swipe support
 - Responsive design
-- PWA installable on home screen
+- **PWA installable** on home screen with custom ToothAid icon
+- **Beautiful page headers** with gradient backgrounds and decorative icons
 - Works offline after first load
 - Swipe navigation in Graphs page
 

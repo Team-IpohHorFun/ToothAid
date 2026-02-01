@@ -76,18 +76,20 @@ const PageHeader = ({ title, subtitle, icon }) => {
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #4A9890 0%, #3D8078 100%)',
-      borderRadius: '16px',
-      padding: '24px',
+      background: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
+      padding: '28px 24px',
       marginBottom: '20px',
+      marginLeft: '-16px',
+      marginRight: '-16px',
+      marginTop: '-16px',
       position: 'relative',
       overflow: 'hidden',
-      minHeight: '100px'
+      minHeight: '90px'
     }}>
       {/* Background decorative icon */}
       <div style={{
         position: 'absolute',
-        right: '16px',
+        right: '20px',
         top: '50%',
         transform: 'translateY(-50%)',
         color: 'rgba(255, 255, 255, 0.15)',

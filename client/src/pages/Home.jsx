@@ -108,15 +108,35 @@ const Home = ({ setToken }) => {
   return (
     <div className="container">
       {/* Welcome Header */}
-      <div className="page-header" style={{ 
-        background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
-        color: 'white',
-        marginBottom: '16px'
+      <div style={{ 
+        background: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
+        padding: '28px 24px',
+        marginBottom: '20px',
+        marginLeft: '-16px',
+        marginRight: '-16px',
+        marginTop: '-16px',
+        position: 'relative',
+        overflow: 'hidden',
+        minHeight: '90px'
       }}>
+        {/* Content */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h1 style={{ color: 'white', marginBottom: '4px', fontSize: '24px' }}>ToothAid</h1>
-            <p style={{ color: 'rgba(255,255,255,0.9)', margin: 0, fontSize: '14px' }}>
+            <h1 style={{ 
+              color: 'white', 
+              fontSize: '26px', 
+              fontWeight: '700',
+              margin: '0 0 6px 0',
+              textShadow: '0 1px 2px rgba(0,0,0,0.1)'
+            }}>
+              ToothAid
+            </h1>
+            <p style={{ 
+              color: 'rgba(255,255,255,0.85)', 
+              margin: 0, 
+              fontSize: '15px',
+              fontWeight: '400'
+            }}>
               Welcome back, {username}
             </p>
           </div>
