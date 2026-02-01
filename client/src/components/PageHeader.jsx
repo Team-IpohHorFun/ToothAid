@@ -76,7 +76,7 @@ const PageHeader = ({ title, subtitle, icon }) => {
 
   return (
     <div style={{
-      background: 'linear-gradient(135deg, #0D9488 0%, #0F766E 100%)',
+      background: '#0D9488',
       padding: '28px 24px',
       marginBottom: '20px',
       marginLeft: '-16px',
