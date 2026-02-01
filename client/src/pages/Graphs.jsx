@@ -649,12 +649,12 @@ const Graphs = () => {
                 ))}
               </div>
               
-              {/* School Names */}
+              {/* School Names - Row by Row */}
               <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>Schools (left to right):</p>
               <div style={{ 
                 display: 'flex', 
-                flexWrap: 'wrap', 
-                gap: '8px 16px'
+                flexDirection: 'column',
+                gap: '6px'
               }}>
                 {chartData.treatmentsBySchool.map((entry, index) => (
                   <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
