@@ -533,7 +533,7 @@ const Graphs = () => {
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
             <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Treatments by Type</h2>
-            <ResponsiveContainer width="100%" height={350} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+            <ResponsiveContainer width="100%" height={280} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
               <PieChart style={{ outline: 'none' }}>
                 <Pie
                   data={pieChartData}
@@ -554,19 +554,54 @@ const Graphs = () => {
                   contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
                   formatter={(value, name) => [value, name || 'Count']}
                 />
-                <Legend />
               </PieChart>
             </ResponsiveContainer>
+            
+            {/* Divider line and Custom Legend */}
+            <div style={{ 
+              borderTop: '1px solid #e0e0e0',
+              marginTop: '16px',
+              paddingTop: '16px'
+            }}>
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: '8px 16px',
+                justifyContent: 'center'
+              }}>
+                {pieChartData.map((item, index) => (
+                  <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ 
+                      width: '12px', 
+                      height: '12px', 
+                      backgroundColor: item.color,
+                      borderRadius: '2px'
+                    }} />
+                    <span style={{ fontSize: '12px', color: '#666' }}>{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         );
 
       case 'treatmentsBySchool':
         if (chartData.treatmentsBySchool.length === 0) return null;
         
+        const treatmentLegendItems = [
+          { key: 'Filling', color: colors.Filling },
+          { key: 'Extraction', color: colors.Extraction },
+          { key: 'Fluoride', color: colors.Fluoride },
+          { key: 'Sealant', color: colors.Sealant },
+          { key: 'SDF', color: colors.SDF },
+          { key: 'Cleaning', color: colors.Cleaning },
+          { key: 'Other', color: colors.Other }
+        ];
+        
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
             <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Treatments by School (Top 10)</h2>
-            <ResponsiveContainer width="100%" height={280} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+            <ResponsiveContainer width="100%" height={250} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
               <BarChart data={chartData.treatmentsBySchool} margin={{ top: 5, right: 20, bottom: 10, left: 0 }} style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
@@ -577,7 +612,6 @@ const Graphs = () => {
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
                 />
-                <Legend />
                 <Bar dataKey="Filling" stackId="a" fill={colors.Filling} />
                 <Bar dataKey="Extraction" stackId="a" fill={colors.Extraction} />
                 <Bar dataKey="Fluoride" stackId="a" fill={colors.Fluoride} />
@@ -587,12 +621,35 @@ const Graphs = () => {
                 <Bar dataKey="Other" stackId="a" fill={colors.Other} />
               </BarChart>
             </ResponsiveContainer>
-            {/* School Names Legend */}
+            
+            {/* Divider line */}
             <div style={{ 
-              marginTop: '16px', 
-              paddingTop: '16px',
-              borderTop: '1px solid #e0e0e0'
+              borderTop: '1px solid #e0e0e0',
+              marginTop: '20px',
+              paddingTop: '16px'
             }}>
+              {/* Treatment Types Legend */}
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: '8px 16px',
+                justifyContent: 'center',
+                marginBottom: '16px'
+              }}>
+                {treatmentLegendItems.map((item) => (
+                  <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <div style={{ 
+                      width: '12px', 
+                      height: '12px', 
+                      backgroundColor: item.color,
+                      borderRadius: '2px'
+                    }} />
+                    <span style={{ fontSize: '12px', color: '#666' }}>{item.key}</span>
+                  </div>
+                ))}
+              </div>
+              
+              {/* School Names */}
               <p style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>Schools (left to right):</p>
               <div style={{ 
                 display: 'flex', 
@@ -642,26 +699,28 @@ const Graphs = () => {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            {/* Custom Legend */}
+            {/* Custom Legend - Row by Row */}
             <div style={{ 
               display: 'flex', 
-              flexWrap: 'wrap', 
-              gap: '16px', 
+              flexDirection: 'column',
+              gap: '8px', 
               marginTop: '16px', 
               paddingTop: '16px',
               borderTop: '1px solid #e0e0e0'
             }}>
               {chartData.avgDmftBySchool.map((entry, index) => (
-                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div 
                     style={{ 
                       width: '16px', 
                       height: '16px', 
                       backgroundColor: schoolColors[index % schoolColors.length],
-                      borderRadius: '2px'
+                      borderRadius: '2px',
+                      flexShrink: 0
                     }} 
                   />
                   <span style={{ fontSize: '14px', color: '#333' }}>{entry.school}</span>
+                  <span style={{ fontSize: '12px', color: '#888', marginLeft: 'auto' }}>({entry.avgDmft})</span>
                 </div>
               ))}
             </div>
