@@ -117,15 +117,14 @@ const SyncPage = ({ token, setToken }) => {
         </div>
       )}
 
-      <div className="card">
-        <button
-          onClick={handleSync}
-          className="btn btn-primary btn-block"
-          disabled={syncing || !isOnline}
-        >
-          {syncing ? 'Syncing...' : 'Sync Now'}
-        </button>
-      </div>
+      <button
+        onClick={handleSync}
+        className="btn btn-primary btn-block"
+        disabled={syncing || !isOnline}
+        style={{ marginTop: '16px' }}
+      >
+        {syncing ? 'Syncing...' : 'Sync Now'}
+      </button>
 
       {syncResult && (
         <div className={`alert ${syncResult.success ? 'alert-info' : 'alert-danger'}`}>
