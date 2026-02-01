@@ -792,17 +792,17 @@ const Graphs = () => {
       {/* Dataset Overview Section */}
       <div style={{ marginTop: '8px', marginBottom: '28px' }}>
         {/* Section Title */}
-        <div style={{
-          fontSize: '12px',
-          fontWeight: '400',
-          color: '#888',
+        <h2 style={{
+          fontSize: '14px',
+          fontWeight: '600',
+          color: 'var(--color-muted)',
           textTransform: 'uppercase',
           letterSpacing: '0.5px',
-          marginBottom: '10px',
-          paddingLeft: '2px'
+          marginBottom: '12px',
+          paddingLeft: '4px'
         }}>
           Dataset Overview
-        </div>
+        </h2>
 
         {/* Metrics Container Card */}
         <div style={{
@@ -889,17 +889,17 @@ const Graphs = () => {
       </div>
 
       {/* Charts Section Label */}
-      <div style={{
-        fontSize: '12px',
-        fontWeight: '400',
-        color: '#888',
+      <h2 style={{
+        fontSize: '14px',
+        fontWeight: '600',
+        color: 'var(--color-muted)',
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
         marginBottom: '12px',
-        paddingLeft: '2px'
+        paddingLeft: '4px'
       }}>
         Trends
-      </div>
+      </h2>
 
       {/* Navigation buttons */}
       <div style={{ 

@@ -219,25 +219,31 @@ const ClinicDayRoster = ({ token }) => {
       {/* Action Buttons */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
         <button
-          className="btn"
           onClick={handleEditClinicDay}
           style={{ 
-            padding: '8px 16px', 
+            padding: '8px 20px', 
             fontSize: '14px',
-            backgroundColor: 'var(--color-primary)',
-            color: '#fff'
+            background: '#f3f4f6',
+            color: '#6b7280',
+            border: '1px solid #d1d5db',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            fontWeight: '500'
           }}
         >
           Edit
         </button>
         <button
-          className="btn"
           onClick={() => setShowDeleteConfirm(true)}
           style={{ 
-            padding: '8px 16px', 
+            padding: '8px 20px', 
             fontSize: '14px',
-            backgroundColor: 'var(--color-accent)',
-            color: '#fff'
+            background: 'rgba(249, 115, 22, 0.15)',
+            color: '#f97316',
+            border: '1px solid #f97316',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            fontWeight: '500'
           }}
         >
           Delete

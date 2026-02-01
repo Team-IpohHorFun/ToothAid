@@ -306,20 +306,30 @@ const ChildProfile = ({ token }) => {
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
                 onClick={startEditingChild} 
-                className="btn btn-secondary"
-                style={{ padding: '6px 12px', fontSize: '13px' }}
+                style={{ 
+                  padding: '8px 16px', 
+                  fontSize: '14px',
+                  background: '#f3f4f6',
+                  color: '#6b7280',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontWeight: '500'
+                }}
               >
                 Edit
               </button>
               <button 
                 onClick={() => setShowDeleteChildConfirm(true)} 
-                className="btn"
                 style={{ 
-                  padding: '6px 12px', 
-                  fontSize: '13px',
-                  background: 'var(--color-accent)',
-                  color: 'white',
-                  border: 'none'
+                  padding: '8px 16px', 
+                  fontSize: '14px',
+                  background: 'rgba(249, 115, 22, 0.15)',
+                  color: '#f97316',
+                  border: '1px solid #f97316',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontWeight: '500'
                 }}
               >
                 Delete
@@ -673,13 +683,14 @@ const ChildProfile = ({ token }) => {
                         <button 
                           onClick={() => startEditingVisit(visit)}
                           style={{ 
-                            padding: '4px 8px', 
+                            padding: '4px 10px', 
                             fontSize: '11px',
-                            background: 'var(--color-bg)',
-                            border: '1px solid var(--color-border)',
-                            borderRadius: 'var(--radius-btn)',
+                            background: '#f3f4f6',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '12px',
                             cursor: 'pointer',
-                            color: 'var(--color-muted)'
+                            color: '#6b7280',
+                            fontWeight: '500'
                           }}
                         >
                           Edit
@@ -687,13 +698,14 @@ const ChildProfile = ({ token }) => {
                         <button 
                           onClick={() => setDeleteVisitId(visit.visitId)}
                           style={{ 
-                            padding: '4px 8px', 
+                            padding: '4px 10px', 
                             fontSize: '11px',
-                            background: 'var(--color-accent-soft)',
-                            border: '1px solid var(--color-accent)',
-                            borderRadius: 'var(--radius-btn)',
+                            background: 'rgba(249, 115, 22, 0.15)',
+                            border: '1px solid #f97316',
+                            borderRadius: '12px',
                             cursor: 'pointer',
-                            color: 'var(--color-accent)'
+                            color: '#f97316',
+                            fontWeight: '500'
                           }}
                         >
                           Delete
