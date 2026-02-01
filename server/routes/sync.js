@@ -120,6 +120,12 @@ router.post('/push', authenticateToken, async (req, res) => {
           const { appointmentId } = op.payload;
           await Appointment.findOneAndDelete({ appointmentId });
           console.log(`✓ DELETE_APPOINTMENT: ${appointmentId}`);
+        } else if (op.action === 'DELETE_CLINIC_DAY') {
+          // Delete clinic day and cascade to appointments
+          const { clinicDayId } = op.payload;
+          const deletedAppointments = await Appointment.deleteMany({ clinicDayId });
+          await ClinicDay.findOneAndDelete({ clinicDayId });
+          console.log(`✓ DELETE_CLINIC_DAY: ${clinicDayId} (${deletedAppointments.deletedCount} appointments)`);
         } else if (op.action === 'DELETE_CHILD') {
           // Delete child and cascade to visits and appointments
           const { childId } = op.payload;

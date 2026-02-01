@@ -293,6 +293,14 @@ export const upsertClinicDay = async (clinicDayData) => {
   return clinicDayData;
 };
 
+// Delete clinic day and cascade to appointments
+export const deleteClinicDay = async (clinicDayId) => {
+  // Delete all appointments for this clinic day
+  await db.appointments.where('clinicDayId').equals(clinicDayId).delete();
+  // Delete the clinic day record
+  await db.clinicDays.delete(clinicDayId);
+};
+
 // Appointment operations
 export const getAppointment = async (appointmentId) => {
   return await db.appointments.get(appointmentId);
