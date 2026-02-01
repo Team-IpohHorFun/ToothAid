@@ -1,0 +1,17 @@
+{
+  "name": "ToothAid",
+  "short_name": "ToothAid",
+  "description": "Dental Data & Impact Monitoring",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0D9488",
+  "icons": [
+    {
+      "src": "/tooth-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
