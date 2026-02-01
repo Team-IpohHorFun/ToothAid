@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
 import { getChild, addVisit, addToOutbox, performSync } from '../db/indexedDB';
 
@@ -119,10 +120,7 @@ const AddVisit = ({ token }) => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <h1>Add Visit</h1>
-        <p>{child.fullName}</p>
-      </div>
+<PageHeader title="Add Visit" subtitle={child.fullName} icon="visit" />
 
       {error && <div className="alert alert-danger">{error}</div>}
 

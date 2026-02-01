@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import { 
   getClinicDay, 
   getAppointmentsByClinicDay,
@@ -213,39 +214,34 @@ const ClinicDayRoster = ({ token }) => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1>Clinic Day Roster</h1>
-            <p>{clinicDay.school} • {formatDate(clinicDay.date)}</p>
-          </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              className="btn"
-              onClick={handleEditClinicDay}
-              style={{ 
-                padding: '8px 12px', 
-                fontSize: '14px',
-                backgroundColor: 'var(--color-primary)',
-                color: '#fff'
-              }}
-            >
-              Edit
-            </button>
-            <button
-              className="btn"
-              onClick={() => setShowDeleteConfirm(true)}
-              style={{ 
-                padding: '8px 12px', 
-                fontSize: '14px',
-                backgroundColor: 'var(--color-accent)',
-                color: '#fff'
-              }}
-            >
-              Delete
-            </button>
-          </div>
-        </div>
+<PageHeader title="Clinic Day Roster" subtitle={`${clinicDay.school} • ${formatDate(clinicDay.date)}`} icon="roster" />
+      
+      {/* Action Buttons */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+        <button
+          className="btn"
+          onClick={handleEditClinicDay}
+          style={{ 
+            padding: '8px 16px', 
+            fontSize: '14px',
+            backgroundColor: 'var(--color-primary)',
+            color: '#fff'
+          }}
+        >
+          Edit
+        </button>
+        <button
+          className="btn"
+          onClick={() => setShowDeleteConfirm(true)}
+          style={{ 
+            padding: '8px 16px', 
+            fontSize: '14px',
+            backgroundColor: 'var(--color-accent)',
+            color: '#fff'
+          }}
+        >
+          Delete
+        </button>
       </div>
 
       {/* Roster Capacity Summary */}

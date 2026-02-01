@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
 import { 
   getChild, 
@@ -293,10 +294,7 @@ const ChildProfile = ({ token }) => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <h1>{child.fullName}</h1>
-        <p>{child.school} • {child.barangay}</p>
-      </div>
+<PageHeader title={child.fullName} subtitle={`${child.school} • ${child.barangay}`} icon="profile" />
 
       {error && <div className="alert alert-danger">{error}</div>}
 

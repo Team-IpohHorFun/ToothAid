@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import { getOutboxOps, getLastSyncAt, performSync } from '../db/indexedDB';
 
 const SyncPage = ({ token, setToken }) => {
@@ -84,10 +85,7 @@ const SyncPage = ({ token, setToken }) => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <h1>Sync</h1>
-        <p>Synchronize data with server</p>
-      </div>
+<PageHeader title="Sync" subtitle="Synchronize data with server" icon="sync" />
 
       <div className="card">
         <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Sync Status</h2>

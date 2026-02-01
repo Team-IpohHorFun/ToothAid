@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
 import { upsertClinicDay, addToOutbox, performSync } from '../db/indexedDB';
 
@@ -101,10 +102,7 @@ const CreateClinicDay = ({ token }) => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <h1>Create Clinic Day</h1>
-        <p>Schedule a new clinic day</p>
-      </div>
+<PageHeader title="Create Clinic Day" subtitle="Schedule a new clinic day" icon="clinic" />
 
       {error && (
         <div className="alert-danger">

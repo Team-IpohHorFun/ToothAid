@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import { getHighRiskVisits } from '../db/indexedDB';
 
 const HighRiskList = () => {
@@ -68,10 +69,7 @@ const HighRiskList = () => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <h1>High-Risk Cases</h1>
-        <p>Ranked by urgency: Emergency → High → Routine</p>
-      </div>
+<PageHeader title="High-Risk Cases" subtitle="Ranked by urgency: Emergency → High → Routine" icon="alert" />
 
       {visits.length === 0 ? (
         <div className="empty-state">

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import { 
   getClinicDay, 
   getHighRiskVisits, 
@@ -495,10 +496,7 @@ const BuildRoster = ({ token }) => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <h1>Build Roster</h1>
-        <p>{clinicDay.school} • {formatDate(clinicDay.date)}</p>
-      </div>
+<PageHeader title="Build Roster" subtitle={`${clinicDay.school} • ${formatDate(clinicDay.date)}`} icon="roster" />
 
       <div className="card" style={{ marginBottom: '16px' }}>
         <h3 style={{ margin: 0, marginBottom: '12px' }}>Roster Status</h3>

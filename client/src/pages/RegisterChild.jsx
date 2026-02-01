@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
 import { searchChildren, getAllChildren, addVisit, addToOutbox, performSync } from '../db/indexedDB';
 
@@ -148,10 +149,7 @@ const RegisterChild = ({ token }) => {
   return (
     <div className="container">
       {/* Header changes based on whether child is selected */}
-      <div className="page-header">
-        <h1>Add Visit</h1>
-        <p>{selectedChild ? selectedChild.fullName : 'Select a child first'}</p>
-      </div>
+<PageHeader title="Add Visit" subtitle={selectedChild ? selectedChild.fullName : 'Select a child first'} icon="visit" />
 
       {/* Child Selection View */}
       {!selectedChild ? (

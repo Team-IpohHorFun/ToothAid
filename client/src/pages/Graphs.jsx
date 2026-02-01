@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import { getAllChildren, getAllVisits } from '../db/indexedDB';
 
 const Graphs = () => {
@@ -773,10 +774,7 @@ const Graphs = () => {
   if (availableSlides.length === 0) {
     return (
       <div className="container">
-        <div className="page-header">
-          <h1>Reports</h1>
-          <p>Data visualization and insights</p>
-        </div>
+        <PageHeader title="Reports" subtitle="Data visualization and insights" icon="reports" />
         <div className="card">
           <div className="empty-state">No data available yet. Register children and add visits to see statistics.</div>
         </div>
@@ -789,10 +787,7 @@ const Graphs = () => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <h1>Reports</h1>
-        <p>Data visualization and insights</p>
-      </div>
+      <PageHeader title="Reports" subtitle="Data visualization and insights" icon="reports" />
 
       {/* Dataset Overview Section */}
       <div style={{ marginTop: '8px', marginBottom: '28px' }}>

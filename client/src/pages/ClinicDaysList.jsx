@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import { getAllClinicDays, getAppointmentCountForClinicDay } from '../db/indexedDB';
 
 const ClinicDaysList = () => {
@@ -59,10 +60,7 @@ const ClinicDaysList = () => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <h1>Clinic Days</h1>
-        <p>Manage scheduled clinic days</p>
-      </div>
+<PageHeader title="Clinic Days" subtitle="Manage scheduled clinic days" icon="clinic" />
 
       <Link to="/create-clinic-day" className="btn btn-primary" style={{ marginBottom: '16px', display: 'block', textAlign: 'center' }}>
         + Create New Clinic Day

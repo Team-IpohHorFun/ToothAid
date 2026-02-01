@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import NavBar from '../components/NavBar';
+import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
 import { searchChildren, getAllChildren, upsertChild, addToOutbox, checkDuplicates, performSync } from '../db/indexedDB';
 
@@ -149,10 +150,7 @@ const SearchChild = ({ token }) => {
 
   return (
     <div className="container">
-      <div className="page-header">
-        <h1>Children</h1>
-        <p>Search or register children</p>
-      </div>
+<PageHeader title="Children" subtitle="Search or register children" icon="children" />
 
       {/* Search Input */}
       <div className="form-group">
