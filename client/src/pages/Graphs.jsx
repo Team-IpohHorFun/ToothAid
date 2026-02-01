@@ -3,6 +3,13 @@ import { LineChart, Line, BarChart, Bar, PieChart, Pie, XAxis, YAxis, CartesianG
 import NavBar from '../components/NavBar';
 import PageHeader from '../components/PageHeader';
 import { getAllChildren, getAllVisits } from '../db/indexedDB';
+import { 
+  groupVisitsByBucket, 
+  getLastNBucketsWithEqualIntervals, 
+  bucketKeyToLabel, 
+  assertChartData,
+  getCumulativeLatestVisits
+} from '../utils/timeBuckets';
 
 const Graphs = () => {
   const [loading, setLoading] = useState(true);
@@ -12,12 +19,24 @@ const Graphs = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const containerRef = useRef(null);
   
+  // Granularity state - persisted in localStorage
+  const [granularity, setGranularity] = useState(() => {
+    const saved = localStorage.getItem('toothaid_granularity');
+    return saved && ['1M', '3M', '6M'].includes(saved) ? saved : '1M';
+  });
+  
+  // Pie chart time filter state - persisted in localStorage
+  const [pieTimeFilter, setPieTimeFilter] = useState(() => {
+    const saved = localStorage.getItem('toothaid_pie_time_filter');
+    return saved && ['6M', '1Y', 'ALL'].includes(saved) ? saved : 'ALL';
+  });
+  
   // Headline metrics state
   const [metrics, setMetrics] = useState({
     totalChildren: 0,
     totalVisits: 0,
     schoolsCovered: 0,
-    monthsOfData: 0
+    dateRange: null // { start: Date, end: Date }
   });
   
   const [chartData, setChartData] = useState({
@@ -29,6 +48,9 @@ const Graphs = () => {
     avgDmftBySchool: [],           // Chart 6: Average DMFT by school (bar, top 10)
     avgDmftOverTime: []            // Chart 7: Average DMFT over time (monthly) - supporting
   });
+  
+  // Store raw visits for pie chart filtering
+  const [allVisits, setAllVisits] = useState([]);
 
   // Minimum swipe distance (in pixels)
   const minSwipeDistance = 50;
@@ -114,32 +136,19 @@ const Graphs = () => {
     return slides;
   };
 
-  // Helper: Get latest visit per child in a month
-  const getLatestVisitsPerChildInMonth = (monthVisits) => {
-    const latestVisitPerChild = {};
-    monthVisits.forEach(visit => {
-      const childId = visit.childId;
-      const visitDate = new Date(visit.date);
-      if (!latestVisitPerChild[childId] || 
-          visitDate > new Date(latestVisitPerChild[childId].date)) {
-        latestVisitPerChild[childId] = visit;
-      }
-    });
-    return Object.values(latestVisitPerChild);
-  };
+  // Persist granularity to localStorage
+  useEffect(() => {
+    localStorage.setItem('toothaid_granularity', granularity);
+  }, [granularity]);
+  
+  // Persist pie time filter to localStorage
+  useEffect(() => {
+    localStorage.setItem('toothaid_pie_time_filter', pieTimeFilter);
+  }, [pieTimeFilter]);
 
-  // Helper: All months between start and end (YYYY-MM), inclusive; equal x-axis spacing for line charts
-  const getAllMonthsInRange = (startKey, endKey) => {
-    const out = [];
-    const [sy, sm] = startKey.split('-').map(Number);
-    const [ey, em] = endKey.split('-').map(Number);
-    let y = sy, m = sm;
-    while (y < ey || (y === ey && m <= em)) {
-      out.push(`${y}-${String(m).padStart(2, '0')}`);
-      m += 1;
-      if (m > 12) { m = 1; y += 1; }
-    }
-    return out;
+  // Handle granularity change
+  const handleGranularityChange = (newGranularity) => {
+    setGranularity(newGranularity);
   };
 
   useEffect(() => {
@@ -147,6 +156,9 @@ const Graphs = () => {
       try {
         const children = await getAllChildren();
         const visits = await getAllVisits();
+        
+        // Store raw visits for pie chart filtering
+        setAllVisits(visits);
 
         // Create child lookup map
         const childMap = {};
@@ -163,64 +175,77 @@ const Graphs = () => {
           }))
           .filter(v => v.child);
 
-        // Group all visits by month
-        const visitsByMonth = {};
-        visitsWithChildren.forEach(visit => {
-          const date = new Date(visit.date);
-          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-          
-          if (!visitsByMonth[monthKey]) {
-            visitsByMonth[monthKey] = [];
-          }
-          visitsByMonth[monthKey].push(visit);
-        });
-
-        const monthKeys = Object.keys(visitsByMonth).sort();
-        const allMonths = monthKeys.length > 0
-          ? getAllMonthsInRange(monthKeys[0], monthKeys[monthKeys.length - 1])
-          : [];
+        // Group visits by bucket (used for determining time range)
+        const bucketedVisits = groupVisitsByBucket(visitsWithChildren, granularity);
+        
+        // Get the last 12 buckets with equal time intervals (fills gaps)
+        const bucketKeys = getLastNBucketsWithEqualIntervals(bucketedVisits, granularity, 12);
+        
+        // Get cumulative latest visits per child up to each bucket (rolling approach)
+        // For each bucket, shows the "current known state" based on each child's latest visit up to that point
+        const cumulativeVisits = getCumulativeLatestVisits(visitsWithChildren, bucketKeys, granularity);
 
         // Compute headline metrics
         const uniqueSchools = new Set(children.map(c => c.school).filter(Boolean));
+        
+        // Calculate date range from visits
+        let dateRange = null;
+        if (visits.length > 0) {
+          const visitDates = visits.map(v => new Date(v.date)).filter(d => !isNaN(d));
+          if (visitDates.length > 0) {
+            const minDate = new Date(Math.min(...visitDates));
+            const maxDate = new Date(Math.max(...visitDates));
+            dateRange = { start: minDate, end: maxDate };
+          }
+        }
+        
         setMetrics({
           totalChildren: children.length,
           totalVisits: visits.length,
           schoolsCovered: uniqueSchools.size,
-          monthsOfData: monthKeys.length
+          dateRange
         });
 
-        // Line charts use allMonths so x-axis has equal time intervals; missing months show as 0
-        const valueForMonth = (monthKey) => {
-          const monthVisits = visitsByMonth[monthKey] || [];
-          return getLatestVisitsPerChildInMonth(monthVisits);
-        };
-
-        // Chart 1: Average Decayed Teeth (D) per child - Monthly
-        const avgDecayedTeeth = allMonths.map(monthKey => {
-          const latestVisits = valueForMonth(monthKey);
+        // Chart 1: Average Decayed Teeth (D) per child (rolling - latest known state at each point)
+        const avgDecayedTeeth = bucketKeys.map(bucketKey => {
+          const latestVisits = cumulativeVisits[bucketKey] || [];
+          if (latestVisits.length === 0) {
+            // No data up to this bucket - use null for gap in line
+            return { label: bucketKeyToLabel(bucketKey), bucketKey, avgD: null };
+          }
           const decayedValues = latestVisits.map(v => (v.decayedTeeth ?? 0));
           const totalD = decayedValues.reduce((sum, d) => sum + d, 0);
           const childCount = decayedValues.length;
           return {
-            month: monthKey,
-            avgD: childCount > 0 ? parseFloat((totalD / childCount).toFixed(2)) : 0
+            label: bucketKeyToLabel(bucketKey),
+            bucketKey,
+            avgD: parseFloat((totalD / childCount).toFixed(2))
           };
         });
+        assertChartData(avgDecayedTeeth, 'Average Decayed Teeth');
 
-        // Chart 2: % of children with ≥1 decayed tooth - Monthly
-        const pctWithDecay = allMonths.map(monthKey => {
-          const latestVisits = valueForMonth(monthKey);
+        // Chart 2: % of children with ≥1 decayed tooth (rolling)
+        const pctWithDecay = bucketKeys.map(bucketKey => {
+          const latestVisits = cumulativeVisits[bucketKey] || [];
+          if (latestVisits.length === 0) {
+            return { label: bucketKeyToLabel(bucketKey), bucketKey, pct: null };
+          }
           const childrenWithDecay = latestVisits.filter(v => (v.decayedTeeth ?? 0) >= 1).length;
           const totalChildren = latestVisits.length;
           return {
-            month: monthKey,
-            pct: totalChildren > 0 ? parseFloat(((childrenWithDecay / totalChildren) * 100).toFixed(1)) : 0
+            label: bucketKeyToLabel(bucketKey),
+            bucketKey,
+            pct: parseFloat(((childrenWithDecay / totalChildren) * 100).toFixed(1))
           };
         });
+        assertChartData(pctWithDecay, '% with Decay');
 
-        // Chart 3: F / DMFT ratio - Monthly (population-level)
-        const fDmftRatio = allMonths.map(monthKey => {
-          const latestVisits = valueForMonth(monthKey);
+        // Chart 3: F / DMFT ratio (rolling, population-level)
+        const fDmftRatio = bucketKeys.map(bucketKey => {
+          const latestVisits = cumulativeVisits[bucketKey] || [];
+          if (latestVisits.length === 0) {
+            return { label: bucketKeyToLabel(bucketKey), bucketKey, ratio: null };
+          }
           let totalF = 0;
           let totalDMFT = 0;
           latestVisits.forEach(v => {
@@ -232,8 +257,13 @@ const Graphs = () => {
             totalDMFT += DMFT;
           });
           const ratio = totalDMFT > 0 ? parseFloat(((totalF / totalDMFT) * 100).toFixed(1)) : 0;
-          return { month: monthKey, ratio };
+          return { 
+            label: bucketKeyToLabel(bucketKey),
+            bucketKey,
+            ratio 
+          };
         });
+        assertChartData(fDmftRatio, 'F/DMFT Ratio');
 
         // Chart 4: Treatments by Type - Bar chart
         const treatmentTypes = ['Filling', 'Extraction', 'Fluoride', 'Sealant', 'SDF', 'Cleaning', 'Other'];
@@ -355,9 +385,12 @@ const Graphs = () => {
           .sort((a, b) => b.avgDmft - a.avgDmft)
           .slice(0, 10);
 
-        // Chart 7: Average DMFT over time - Monthly (supporting chart)
-        const avgDmftOverTime = allMonths.map(monthKey => {
-          const latestVisits = valueForMonth(monthKey);
+        // Chart 7: Average DMFT over time (rolling - latest known state at each point)
+        const avgDmftOverTime = bucketKeys.map(bucketKey => {
+          const latestVisits = cumulativeVisits[bucketKey] || [];
+          if (latestVisits.length === 0) {
+            return { label: bucketKeyToLabel(bucketKey), bucketKey, avgDmft: null };
+          }
           const dmftValues = latestVisits.map(v => {
             const D = v.decayedTeeth ?? 0;
             const M = v.missingTeeth ?? 0;
@@ -367,10 +400,12 @@ const Graphs = () => {
           const totalDMFT = dmftValues.reduce((sum, dmft) => sum + dmft, 0);
           const childCount = dmftValues.length;
           return {
-            month: monthKey,
-            avgDmft: childCount > 0 ? parseFloat((totalDMFT / childCount).toFixed(2)) : 0
+            label: bucketKeyToLabel(bucketKey),
+            bucketKey,
+            avgDmft: parseFloat((totalDMFT / childCount).toFixed(2))
           };
         });
+        assertChartData(avgDmftOverTime, 'Average DMFT Over Time');
 
         setChartData({
           avgDecayedTeeth,
@@ -389,7 +424,7 @@ const Graphs = () => {
     };
 
     loadData();
-  }, []);
+  }, [granularity]);
 
   // Reset slide when data changes
   useEffect(() => {
@@ -428,26 +463,116 @@ const Graphs = () => {
     '#6B7280'  // Gray
   ];
 
-  // Memoize pie chart data to prevent recalculation
+  // Filter visits for pie chart based on time filter
+  const filteredVisitsForPie = useMemo(() => {
+    if (allVisits.length === 0) return [];
+    
+    const now = new Date();
+    let cutoffDate = null;
+    
+    if (pieTimeFilter === '6M') {
+      cutoffDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+    } else if (pieTimeFilter === '1Y') {
+      cutoffDate = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+    }
+    // 'ALL' means no filtering
+    
+    if (cutoffDate) {
+      return allVisits.filter(v => new Date(v.date) >= cutoffDate);
+    }
+    return allVisits;
+  }, [allVisits, pieTimeFilter]);
+  
+  // Memoize pie chart data based on filtered visits
   const pieChartData = useMemo(() => {
-    if (chartData.treatmentsByType.length === 0) return [];
-    return chartData.treatmentsByType.map(item => ({
-      name: item.type,
-      value: item.count,
-      color: colors[item.type] || colors.Other
-    }));
-  }, [chartData.treatmentsByType]);
+    if (filteredVisitsForPie.length === 0) return [];
+    
+    const treatmentTypes = ['Filling', 'Extraction', 'Fluoride', 'Sealant', 'SDF', 'Cleaning', 'Other'];
+    const treatmentsByTypeCounts = {};
+    treatmentTypes.forEach(type => {
+      treatmentsByTypeCounts[type] = 0;
+    });
+    
+    filteredVisitsForPie.forEach(visit => {
+      if (visit.treatmentTypes && visit.treatmentTypes.length > 0) {
+        visit.treatmentTypes.forEach(treatment => {
+          const normalized = treatment.trim();
+          if (treatmentsByTypeCounts.hasOwnProperty(normalized)) {
+            treatmentsByTypeCounts[normalized]++;
+          } else {
+            treatmentsByTypeCounts['Other']++;
+          }
+        });
+      }
+    });
+    
+    return Object.keys(treatmentsByTypeCounts)
+      .map(type => ({
+        name: type,
+        value: treatmentsByTypeCounts[type],
+        color: colors[type] || colors.Other
+      }))
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [filteredVisitsForPie]);
+
+  // Granularity selector component for line charts
+  const GranularitySelector = () => (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      marginBottom: '12px'
+    }}>
+      <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '500' }}>View:</span>
+      <div style={{
+        display: 'flex',
+        background: '#f0f0f0',
+        borderRadius: '6px',
+        padding: '2px',
+        gap: '2px'
+      }}>
+        {[
+          { value: '1M', label: 'Monthly' },
+          { value: '3M', label: 'Quarterly' },
+          { value: '6M', label: 'Half-year' }
+        ].map(option => (
+          <button
+            key={option.value}
+            onClick={() => handleGranularityChange(option.value)}
+            style={{
+              padding: '4px 10px',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '11px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              background: granularity === option.value ? 'white' : 'transparent',
+              color: granularity === option.value ? 'var(--color-primary)' : '#666',
+              boxShadow: granularity === option.value ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+            }}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   const renderSlide = (slideType, slideIndex) => {
     switch (slideType) {
       case 'avgDecayedTeeth':
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
-            <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Average Decayed Teeth per Child (D)</h2>
-            <ResponsiveContainer width="100%" height={350} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '18px', margin: 0 }}>Average Decayed Teeth per Child (D)</h2>
+            </div>
+            <GranularitySelector />
+            <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
               <LineChart data={chartData.avgDecayedTeeth} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis />
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
@@ -461,6 +586,7 @@ const Graphs = () => {
                   dot={{ fill: 'var(--color-accent)', r: 6, strokeWidth: 2, stroke: '#fff' }}
                   activeDot={{ r: 10, strokeWidth: 2, stroke: '#fff' }}
                   name="Average Decayed Teeth"
+                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -470,11 +596,14 @@ const Graphs = () => {
       case 'pctWithDecay':
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
-            <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>% of Children with ≥1 Decayed Tooth</h2>
-            <ResponsiveContainer width="100%" height={350} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '18px', margin: 0 }}>% of Children with ≥1 Decayed Tooth</h2>
+            </div>
+            <GranularitySelector />
+            <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
               <LineChart data={chartData.pctWithDecay} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis domain={[0, 100]} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
@@ -488,6 +617,7 @@ const Graphs = () => {
                   dot={{ fill: 'var(--color-warning)', r: 6, strokeWidth: 2, stroke: '#fff' }}
                   activeDot={{ r: 10, strokeWidth: 2, stroke: '#fff' }}
                   name="% with Decay"
+                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -497,11 +627,14 @@ const Graphs = () => {
       case 'fDmftRatio':
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
-            <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>F / DMFT Ratio</h2>
-            <ResponsiveContainer width="100%" height={350} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '18px', margin: 0 }}>F / DMFT Ratio</h2>
+            </div>
+            <GranularitySelector />
+            <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
               <LineChart data={chartData.fDmftRatio} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis domain={[0, 100]} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
@@ -515,6 +648,7 @@ const Graphs = () => {
                   dot={{ fill: 'var(--color-success)', r: 6, strokeWidth: 2, stroke: '#fff' }}
                   activeDot={{ r: 10, strokeWidth: 2, stroke: '#fff' }}
                   name="F/DMFT %"
+                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -524,16 +658,79 @@ const Graphs = () => {
       case 'treatmentsByType':
         if (pieChartData.length === 0) return null;
         
-        // Optimized label function
-        const renderLabel = (entry) => {
-          const percent = entry.percent || 0;
-          if (percent < 0.05) return ''; // Hide labels for very small slices
-          return `${(percent * 100).toFixed(0)}%`;
+        // Label function for pie chart - shows percentage outside the slice (no lines)
+        const total = pieChartData.reduce((sum, item) => sum + item.value, 0);
+        
+        const renderLabel = ({ cx, cy, midAngle, outerRadius, index }) => {
+          const item = pieChartData[index];
+          if (!item) return null;
+          const pct = (item.value / total) * 100;
+          if (pct < 3) return null; // Hide labels for very small slices (<3%)
+          const RADIAN = Math.PI / 180;
+          const radius = outerRadius * 1.25;
+          const x = cx + radius * Math.cos(-midAngle * RADIAN);
+          const y = cy + radius * Math.sin(-midAngle * RADIAN);
+          
+          return (
+            <text 
+              x={x} 
+              y={y} 
+              fill="#333"
+              textAnchor={x > cx ? 'start' : 'end'} 
+              dominantBaseline="central"
+              style={{ fontSize: '12px', fontWeight: '600' }}
+            >
+              {`${pct.toFixed(1)}%`}
+            </text>
+          );
         };
         
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
-            <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Treatments by Type</h2>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '18px', margin: 0 }}>Treatments by Type</h2>
+            </div>
+            {/* Time filter selector for pie chart */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginBottom: '12px'
+            }}>
+              <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '500' }}>View:</span>
+              <div style={{
+                display: 'flex',
+                background: '#f0f0f0',
+                borderRadius: '6px',
+                padding: '2px',
+                gap: '2px'
+              }}>
+                {[
+                  { value: '6M', label: 'Last 6 months' },
+                  { value: '1Y', label: 'Last 1 year' },
+                  { value: 'ALL', label: 'All data' }
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => setPieTimeFilter(option.value)}
+                    style={{
+                      padding: '4px 10px',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      background: pieTimeFilter === option.value ? 'white' : 'transparent',
+                      color: pieTimeFilter === option.value ? 'var(--color-primary)' : '#666',
+                      boxShadow: pieTimeFilter === option.value ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height={280} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
               <PieChart style={{ outline: 'none' }}>
                 <Pie
@@ -542,7 +739,7 @@ const Graphs = () => {
                   cy="50%"
                   labelLine={false}
                   label={renderLabel}
-                  outerRadius={100}
+                  outerRadius={85}
                   fill="#8884d8"
                   dataKey="value"
                   isAnimationActive={false}
@@ -731,11 +928,14 @@ const Graphs = () => {
       case 'avgDmftOverTime':
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
-            <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Average DMFT Over Time</h2>
-            <ResponsiveContainer width="100%" height={350} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+              <h2 style={{ fontSize: '18px', margin: 0 }}>Average DMFT Over Time</h2>
+            </div>
+            <GranularitySelector />
+            <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
               <LineChart data={chartData.avgDmftOverTime} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                 <YAxis />
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
@@ -749,6 +949,7 @@ const Graphs = () => {
                   dot={{ fill: 'var(--color-primary)', r: 6, strokeWidth: 2, stroke: '#fff' }}
                   activeDot={{ r: 10, strokeWidth: 2, stroke: '#fff' }}
                   name="Average DMFT"
+                  connectNulls={false}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -874,14 +1075,26 @@ const Graphs = () => {
                 color: '#495057',
                 lineHeight: 1
               }}>
-                {metrics.monthsOfData}
+                {metrics.dateRange ? (
+                  <>
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                      {metrics.dateRange.start.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                    </span>
+                    <span style={{ margin: '0 4px' }}>–</span>
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                      {metrics.dateRange.end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                    </span>
+                  </>
+                ) : (
+                  'No data'
+                )}
               </div>
               <div style={{ 
                 fontSize: '13px', 
                 color: '#6c757d',
                 marginTop: '2px'
               }}>
-                Months of Data
+                Coverage
               </div>
             </div>
           </div>
