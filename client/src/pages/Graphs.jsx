@@ -600,7 +600,7 @@ const Graphs = () => {
         
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
-            <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Treatments by School (Top 10)</h2>
+            <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Treatments by School</h2>
             <ResponsiveContainer width="100%" height={250} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
               <BarChart data={chartData.treatmentsBySchool} margin={{ top: 5, right: 20, bottom: 10, left: 0 }} style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -679,7 +679,7 @@ const Graphs = () => {
         
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '300px' }}>
-            <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Average DMFT by School (Top 10)</h2>
+            <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Average DMFT by School</h2>
             <ResponsiveContainer width="100%" height={250} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
               <BarChart data={chartData.avgDmftBySchool} margin={{ top: 5, right: 20, bottom: 10, left: 0 }} style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" />
