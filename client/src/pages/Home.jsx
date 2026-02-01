@@ -16,9 +16,10 @@ const Home = ({ setToken }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Get high-risk cases
+        // Get high-risk cases (only Emergency and High, not Routine)
         const highRisk = await getHighRiskVisits();
-        setHighRiskCount(highRisk.length);
+        const urgentCases = highRisk.filter(v => v.tier <= 2); // tier 1 = Emergency, tier 2 = High
+        setHighRiskCount(urgentCases.length);
 
         // Get pending operations
         const outbox = await getOutboxOps();

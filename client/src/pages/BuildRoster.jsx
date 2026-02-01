@@ -65,25 +65,37 @@ const BuildRoster = ({ token }) => {
           .map(a => a.childId)
       );
 
-      // Load high-risk visits
+      // Load high-risk visits (Emergency and High only - tier 1 and 2)
       const highRisk = await getHighRiskVisits();
-      // Exclude already scheduled (no school filtering)
+      // Filter to only Emergency (tier 1) and High (tier 2), exclude already scheduled
       const filteredHighRisk = highRisk.filter(v => {
         if (!v.child) return false;
+        if (v.tier > 2) return false; // Exclude Routine (tier 3) from high-risk section
         return !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId);
       });
       setHighRiskVisits(filteredHighRisk);
 
-      // Load routine children (all children, excluding high-risk)
+      // Load routine children (all children, excluding only Emergency/High priority)
       const allChildren = await getAllChildren();
-      const highRiskChildIds = new Set(filteredHighRisk.map(v => v.childId));
+      // Only exclude Emergency and High priority children (tier 1 and 2) from routine
+      const emergencyHighChildIds = new Set(filteredHighRisk.map(v => v.childId));
+      
+      // Get routine tier visits (tier 3) for urgency scores
+      const routineVisits = highRisk.filter(v => v.tier === 3);
+      const routineVisitMap = new Map(routineVisits.map(v => [v.childId, v]));
       
       const routine = allChildren
         .filter(child => {
           return !rosterChildIds.has(child.childId) && 
                  !scheduledChildIds.has(child.childId) &&
-                 !highRiskChildIds.has(child.childId);
+                 !emergencyHighChildIds.has(child.childId);
         })
+        .map(child => ({
+          ...child,
+          urgencyScore: routineVisitMap.get(child.childId)?.urgencyScore || 0,
+          hasVisit: routineVisitMap.has(child.childId)
+        }))
+        .sort((a, b) => b.urgencyScore - a.urgencyScore) // Sort by urgency score (highest first)
         .slice(0, 100); // Limit to first 100 for performance
       setRoutineChildren(routine);
 
@@ -259,24 +271,35 @@ const BuildRoster = ({ token }) => {
             .map(a => a.childId)
         );
 
-        // Reload high-risk visits
+        // Reload high-risk visits (Emergency and High only)
         const highRisk = await getHighRiskVisits();
         const filteredHighRisk = highRisk.filter(v => {
           if (!v.child) return false;
+          if (v.tier > 2) return false; // Exclude Routine (tier 3)
           return !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId);
         });
         setHighRiskVisits(filteredHighRisk);
 
-        // Reload routine children
+        // Reload routine children (exclude only Emergency/High), sorted by urgency
         const allChildren = await getAllChildren();
-        const highRiskChildIds = new Set(filteredHighRisk.map(v => v.childId));
+        const emergencyHighChildIds = new Set(filteredHighRisk.map(v => v.childId));
+        
+        // Get routine tier visits for urgency scores
+        const routineVisits = highRisk.filter(v => v.tier === 3);
+        const routineVisitMap = new Map(routineVisits.map(v => [v.childId, v]));
         
         const routine = allChildren
           .filter(child => {
             return !rosterChildIds.has(child.childId) && 
                    !scheduledChildIds.has(child.childId) &&
-                   !highRiskChildIds.has(child.childId);
+                   !emergencyHighChildIds.has(child.childId);
           })
+          .map(child => ({
+            ...child,
+            urgencyScore: routineVisitMap.get(child.childId)?.urgencyScore || 0,
+            hasVisit: routineVisitMap.has(child.childId)
+          }))
+          .sort((a, b) => b.urgencyScore - a.urgencyScore)
           .slice(0, 100);
         setRoutineChildren(routine);
       }
@@ -362,13 +385,10 @@ const BuildRoster = ({ token }) => {
           }
         }
         
-        // Determine which slot to use
+        // Determine which slot to use (fill AM first, then PM)
         let timeWindow = 'FULL';
         if (hasAmPmCapacity) {
-          if (updatedAmCount < clinicDay.amCapacity && updatedPmCount < clinicDay.pmCapacity) {
-            // Alternate between AM and PM
-            timeWindow = updatedAmCount <= updatedPmCount ? 'AM' : 'PM';
-          } else if (updatedAmCount < clinicDay.amCapacity) {
+          if (updatedAmCount < clinicDay.amCapacity) {
             timeWindow = 'AM';
           } else if (updatedPmCount < clinicDay.pmCapacity) {
             timeWindow = 'PM';
@@ -603,26 +623,26 @@ const BuildRoster = ({ token }) => {
       )}
 
       {/* Routine Screenings */}
-      {routineChildren.length > 0 && remaining > 0 && (
+      {routineChildren.length > 0 && (
         <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', marginBottom: '12px' }}>
-            ℹ️ Routine Screenings ({routineChildren.length})
+          <h2 style={{ fontSize: '18px', marginBottom: '12px', color: 'var(--color-primary)' }}>
+            📋 Routine Screenings ({routineChildren.filter(c => !isInRoster(c.childId)).length})
           </h2>
           {routineChildren
             .filter(c => !isInRoster(c.childId))
-            .slice(0, 20)
+            .slice(0, 50)
             .map(child => (
               <div key={child.childId} className="card" style={{ marginBottom: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ flex: 1 }}>
                     <h3 style={{ marginBottom: '4px' }}>{child.fullName}</h3>
                     <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-                      {child.grade || 'No grade'} • {child.barangay}
+                      {child.school || 'No school'} • {child.grade || 'No grade'} • {child.barangay}
                     </p>
                   </div>
                   <button
                     className="btn btn-primary"
-                    onClick={() => handleAddToRoster(child.childId, 'ROUTINE')}
+                    onClick={() => handleAddToRoster(child.childId, 'ROUTINE', 3, 0)}
                     disabled={saving || isInRoster(child.childId) || remaining <= 0}
                   >
                     Add
