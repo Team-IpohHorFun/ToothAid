@@ -106,7 +106,7 @@ The app includes comprehensive clinic day and appointment scheduling features:
 ## 📁 Project Structure
 
 ```
-toothaid/
+ToothAid/
 ├── server/                 # Backend Express server
 │   ├── models/            # Mongoose schemas
 │   │   ├── Child.js       # Child data model
@@ -128,29 +128,40 @@ toothaid/
 │   ├── server.js          # Express app entry point
 │   └── package.json
 │
-└── client/                # Frontend React app
-    ├── src/
-    │   ├── db/           # IndexedDB operations
-    │   │   └── indexedDB.js
-    │   ├── pages/        # React page components
-    │   │   ├── Login.jsx
-    │   │   ├── Home.jsx
-    │   │   ├── SearchChild.jsx
-    │   │   ├── RegisterChild.jsx
-    │   │   ├── ChildProfile.jsx
-    │   │   ├── AddVisit.jsx
-    │   │   ├── HighRiskList.jsx
-    │   │   ├── Graphs.jsx
-    │   │   └── SyncPage.jsx
-    │   ├── components/   # Reusable components
-    │   │   ├── NavBar.jsx
-    │   │   └── DateInput.jsx
-    │   ├── App.jsx
-    │   ├── App.css
-    │   └── main.jsx
-    ├── vite.config.js
-    ├── index.html
-    └── package.json
+├── client/                # Frontend React app
+│   ├── src/
+│   │   ├── db/           # IndexedDB operations
+│   │   │   └── indexedDB.js
+│   │   ├── pages/        # React page components
+│   │   │   ├── Login.jsx
+│   │   │   ├── Home.jsx
+│   │   │   ├── SearchChild.jsx
+│   │   │   ├── RegisterChild.jsx
+│   │   │   ├── ChildProfile.jsx
+│   │   │   ├── AddVisit.jsx
+│   │   │   ├── HighRiskList.jsx
+│   │   │   ├── ClinicDaysList.jsx
+│   │   │   ├── CreateClinicDay.jsx
+│   │   │   ├── ClinicDayRoster.jsx
+│   │   │   ├── BuildRoster.jsx
+│   │   │   ├── Graphs.jsx
+│   │   │   └── SyncPage.jsx
+│   │   ├── components/   # Reusable components
+│   │   │   ├── NavBar.jsx
+│   │   │   └── DateInput.jsx
+│   │   ├── config.js     # API configuration
+│   │   ├── App.jsx
+│   │   ├── App.css
+│   │   ├── fonts.css
+│   │   └── main.jsx
+│   ├── public/
+│   │   └── vite.svg
+│   ├── vite.config.js
+│   ├── index.html
+│   └── package.json
+│
+├── docker-compose.yml     # Docker configuration for MongoDB
+└── README.md
 ```
 
 ## 🚦 Quick Start

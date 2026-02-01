@@ -119,6 +119,43 @@ router.post('/push', authenticateToken, async (req, res) => {
         } else if (op.action === 'DELETE_APPOINTMENT') {
           const { appointmentId } = op.payload;
           await Appointment.findOneAndDelete({ appointmentId });
+          console.log(`✓ DELETE_APPOINTMENT: ${appointmentId}`);
+        } else if (op.action === 'DELETE_CHILD') {
+          // Delete child and cascade to visits and appointments
+          const { childId } = op.payload;
+          const deletedVisits = await Visit.deleteMany({ childId });
+          const deletedAppointments = await Appointment.deleteMany({ childId });
+          await Child.findOneAndDelete({ childId });
+          console.log(`✓ DELETE_CHILD: ${childId} (${deletedVisits.deletedCount} visits, ${deletedAppointments.deletedCount} appointments)`);
+        } else if (op.action === 'DELETE_VISIT') {
+          // Delete single visit
+          const { visitId } = op.payload;
+          await Visit.findOneAndDelete({ visitId });
+          console.log(`✓ DELETE_VISIT: ${visitId}`);
+        } else if (op.action === 'UPDATE_VISIT') {
+          // Update existing visit
+          const payload = op.payload;
+          const visitData = {
+            visitId: payload.visitId,
+            childId: payload.childId,
+            date: payload.date,
+            type: payload.type,
+            painFlag: payload.painFlag || false,
+            swellingFlag: payload.swellingFlag || false,
+            decayedTeeth: payload.decayedTeeth !== undefined ? payload.decayedTeeth : null,
+            missingTeeth: payload.missingTeeth !== undefined ? payload.missingTeeth : null,
+            filledTeeth: payload.filledTeeth !== undefined ? payload.filledTeeth : null,
+            treatmentTypes: payload.treatmentTypes || [],
+            notes: payload.notes || null,
+            updatedBy: payload.updatedBy || username,
+            updatedAt: new Date()
+          };
+          await Visit.findOneAndUpdate(
+            { visitId: visitData.visitId },
+            { $set: visitData },
+            { new: true }
+          );
+          console.log(`✓ UPDATE_VISIT: ${visitData.visitId}`);
         }
 
         // Mark operation as processed

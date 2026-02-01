@@ -90,6 +90,16 @@ export const upsertChild = async (childData) => {
   return childData;
 };
 
+// Delete child and cascade to visits and appointments
+export const deleteChild = async (childId) => {
+  // Delete all visits for this child
+  await db.visits.where('childId').equals(childId).delete();
+  // Delete all appointments for this child
+  await db.appointments.where('childId').equals(childId).delete();
+  // Delete the child record
+  await db.children.delete(childId);
+};
+
 // Check for possible duplicates
 export const checkDuplicates = async (childData) => {
   const { school, fullName, dob, age } = childData;
@@ -141,6 +151,22 @@ export const getManualVisits = async () => {
 export const addVisit = async (visitData) => {
   await db.visits.add(visitData);
   return visitData;
+};
+
+// Delete a single visit
+export const deleteVisit = async (visitId) => {
+  await db.visits.delete(visitId);
+};
+
+// Update existing visit
+export const updateVisit = async (visitData) => {
+  await db.visits.put(visitData);
+  return visitData;
+};
+
+// Get a single visit by ID
+export const getVisit = async (visitId) => {
+  return await db.visits.get(visitId);
 };
 
 // Calculate tier for a visit
