@@ -55,16 +55,34 @@ const Graphs = () => {
   // Active point state for custom tooltip (only shows when dot is touched directly)
   const [activePoint, setActivePoint] = useState(null); // { chartId, index, x, y, value, label }
 
-  // Minimum swipe distance (in pixels)
-  const minSwipeDistance = 50;
+  // Minimum swipe distance (in pixels) - lowered for better sensitivity
+  const minSwipeDistance = 30;
+
+  const [touchStartY, setTouchStartY] = useState(null);
+  const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
 
   const handleTouchStart = (e) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
+    setTouchStartY(e.targetTouches[0].clientY);
+    setIsHorizontalSwipe(false);
   };
 
   const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    if (!touchStart || !touchStartY) return;
+    
+    const currentX = e.targetTouches[0].clientX;
+    const currentY = e.targetTouches[0].clientY;
+    const diffX = Math.abs(currentX - touchStart);
+    const diffY = Math.abs(currentY - touchStartY);
+    
+    // If horizontal movement is greater than vertical, it's a horizontal swipe
+    if (diffX > diffY && diffX > 10) {
+      setIsHorizontalSwipe(true);
+      e.preventDefault(); // Prevent vertical scroll when swiping horizontally
+    }
+    
+    setTouchEnd(currentX);
   };
 
   const handleTouchEnd = () => {
@@ -79,6 +97,8 @@ const Graphs = () => {
     } else if (isRightSwipe && !isTransitioning) {
       handlePrev();
     }
+    
+    setIsHorizontalSwipe(false);
   };
 
   const handleNext = () => {
@@ -523,13 +543,15 @@ const Graphs = () => {
   }, [filteredVisitsForPie]);
 
   // Custom interactive dot component - only responds to direct touch/click on the dot
+  // Uses a larger invisible touch target for better mobile usability
   const createInteractiveDot = (chartId, color, dataKey, valueFormatter) => {
     return (props) => {
       const { cx, cy, payload, index } = props;
       if (cx === undefined || cy === undefined || payload[dataKey] === null) return null;
       
       const isActive = activePoint?.chartId === chartId && activePoint?.index === index;
-      const radius = isActive ? 10 : 6;
+      const visibleRadius = isActive ? 10 : 7;
+      const touchTargetRadius = 22; // Large invisible touch target
       
       const handleClick = (e) => {
         e.stopPropagation();
@@ -549,17 +571,28 @@ const Graphs = () => {
       };
       
       return (
-        <circle
-          cx={cx}
-          cy={cy}
-          r={radius}
-          fill={color}
-          stroke="#fff"
-          strokeWidth={2}
-          style={{ cursor: 'pointer', transition: 'r 0.15s' }}
-          onClick={handleClick}
-          onTouchEnd={handleClick}
-        />
+        <g>
+          {/* Invisible larger touch target */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={touchTargetRadius}
+            fill="transparent"
+            style={{ cursor: 'pointer' }}
+            onClick={handleClick}
+            onTouchEnd={handleClick}
+          />
+          {/* Visible dot */}
+          <circle
+            cx={cx}
+            cy={cy}
+            r={visibleRadius}
+            fill={color}
+            stroke="#fff"
+            strokeWidth={2}
+            style={{ pointerEvents: 'none', transition: 'r 0.15s' }}
+          />
+        </g>
       );
     };
   };
@@ -1301,7 +1334,7 @@ const Graphs = () => {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         style={{
-          touchAction: 'pan-y',
+          touchAction: isHorizontalSwipe ? 'none' : 'pan-y',
           userSelect: 'none',
           WebkitUserSelect: 'none',
           overflow: 'hidden',
