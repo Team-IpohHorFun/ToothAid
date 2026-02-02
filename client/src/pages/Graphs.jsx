@@ -678,8 +678,8 @@ const Graphs = () => {
               handleGranularityChange(option.value);
             }}
             style={{
-              padding: '10px 14px',
-              minHeight: '40px',
+              padding: '8px 12px',
+              minHeight: '36px',
               border: 'none',
               borderRadius: '8px',
               fontSize: '13px',
@@ -852,8 +852,8 @@ const Graphs = () => {
                         setPieTimeFilter(option.value);
                       }}
                       style={{
-                        padding: '10px 14px',
-                        minHeight: '40px',
+                        padding: '8px 12px',
+                        minHeight: '36px',
                         border: 'none',
                         borderRadius: '8px',
                         fontSize: '13px',
