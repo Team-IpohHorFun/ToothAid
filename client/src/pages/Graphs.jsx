@@ -14,8 +14,6 @@ import {
 const Graphs = () => {
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [touchStart, setTouchStart] = useState(null);
-  const [touchEnd, setTouchEnd] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const containerRef = useRef(null);
   
@@ -58,48 +56,72 @@ const Graphs = () => {
   // Minimum swipe distance (in pixels) - lowered for better sensitivity
   const minSwipeDistance = 30;
 
-  const [touchStartY, setTouchStartY] = useState(null);
-  const [isHorizontalSwipe, setIsHorizontalSwipe] = useState(false);
+  // Use refs to track touch state for non-passive event listener
+  const touchStartRef = useRef({ x: 0, y: 0 });
+  const touchEndRef = useRef(0);
+  const swipeDirectionRef = useRef(null); // 'horizontal', 'vertical', or null
 
-  const handleTouchStart = (e) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-    setTouchStartY(e.targetTouches[0].clientY);
-    setIsHorizontalSwipe(false);
-  };
+  // Add non-passive touch event listeners for proper preventDefault support
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
 
-  const handleTouchMove = (e) => {
-    if (!touchStart || !touchStartY) return;
-    
-    const currentX = e.targetTouches[0].clientX;
-    const currentY = e.targetTouches[0].clientY;
-    const diffX = Math.abs(currentX - touchStart);
-    const diffY = Math.abs(currentY - touchStartY);
-    
-    // If horizontal movement is greater than vertical, it's a horizontal swipe
-    if (diffX > diffY && diffX > 10) {
-      setIsHorizontalSwipe(true);
-      e.preventDefault(); // Prevent vertical scroll when swiping horizontally
-    }
-    
-    setTouchEnd(currentX);
-  };
+    const handleTouchStart = (e) => {
+      touchStartRef.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
+      };
+      touchEndRef.current = e.touches[0].clientX;
+      swipeDirectionRef.current = null;
+    };
 
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    const handleTouchMove = (e) => {
+      const currentX = e.touches[0].clientX;
+      const currentY = e.touches[0].clientY;
+      const diffX = Math.abs(currentX - touchStartRef.current.x);
+      const diffY = Math.abs(currentY - touchStartRef.current.y);
+      
+      // Lock in the swipe direction early (after just 5px of movement)
+      if (swipeDirectionRef.current === null && (diffX > 5 || diffY > 5)) {
+        swipeDirectionRef.current = diffX > diffY ? 'horizontal' : 'vertical';
+      }
+      
+      // If horizontal swipe, prevent default to stop page scroll
+      if (swipeDirectionRef.current === 'horizontal') {
+        e.preventDefault();
+      }
+      
+      touchEndRef.current = currentX;
+    };
 
-    if (isLeftSwipe && !isTransitioning) {
-      handleNext();
-    } else if (isRightSwipe && !isTransitioning) {
-      handlePrev();
-    }
-    
-    setIsHorizontalSwipe(false);
-  };
+    const handleTouchEnd = () => {
+      const distance = touchStartRef.current.x - touchEndRef.current;
+      const isLeftSwipe = distance > minSwipeDistance;
+      const isRightSwipe = distance < -minSwipeDistance;
+
+      // Only handle swipe if it was horizontal
+      if (swipeDirectionRef.current === 'horizontal') {
+        if (isLeftSwipe && !isTransitioning) {
+          handleNext();
+        } else if (isRightSwipe && !isTransitioning) {
+          handlePrev();
+        }
+      }
+      
+      swipeDirectionRef.current = null;
+    };
+
+    // Add with passive: false so we can preventDefault
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isTransitioning, minSwipeDistance]);
 
   const handleNext = () => {
     const slides = getAvailableSlides();
@@ -640,8 +662,8 @@ const Graphs = () => {
       <div style={{
         display: 'flex',
         background: '#f2f2f7',
-        borderRadius: '8px',
-        padding: '3px'
+        borderRadius: '10px',
+        padding: '4px'
       }}>
         {[
           { value: '1M', label: 'Monthly' },
@@ -651,16 +673,22 @@ const Graphs = () => {
           <button
             key={option.value}
             onClick={() => handleGranularityChange(option.value)}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              handleGranularityChange(option.value);
+            }}
             style={{
-              padding: '6px 12px',
+              padding: '10px 14px',
+              minHeight: '40px',
               border: 'none',
-              borderRadius: '6px',
+              borderRadius: '8px',
               fontSize: '13px',
-              fontWeight: '500',
+              fontWeight: '600',
               cursor: 'pointer',
-              transition: 'all 0.2s',
+              transition: 'all 0.15s',
               background: granularity === option.value ? 'var(--color-primary)' : 'transparent',
-              color: granularity === option.value ? 'white' : '#8e8e93'
+              color: granularity === option.value ? 'white' : '#8e8e93',
+              WebkitTapHighlightColor: 'transparent'
             }}
           >
             {option.label}
@@ -808,8 +836,8 @@ const Graphs = () => {
                 <div style={{
                   display: 'flex',
                   background: '#f2f2f7',
-                  borderRadius: '8px',
-                  padding: '3px'
+                  borderRadius: '10px',
+                  padding: '4px'
                 }}>
                   {[
                     { value: '6M', label: '6 months' },
@@ -819,16 +847,22 @@ const Graphs = () => {
                     <button
                       key={option.value}
                       onClick={() => setPieTimeFilter(option.value)}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        setPieTimeFilter(option.value);
+                      }}
                       style={{
-                        padding: '6px 12px',
+                        padding: '10px 14px',
+                        minHeight: '40px',
                         border: 'none',
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         fontSize: '13px',
-                        fontWeight: '500',
+                        fontWeight: '600',
                         cursor: 'pointer',
-                        transition: 'all 0.2s',
+                        transition: 'all 0.15s',
                         background: pieTimeFilter === option.value ? 'var(--color-primary)' : 'transparent',
-                        color: pieTimeFilter === option.value ? 'white' : '#8e8e93'
+                        color: pieTimeFilter === option.value ? 'white' : '#8e8e93',
+                        WebkitTapHighlightColor: 'transparent'
                       }}
                     >
                       {option.label}
@@ -1330,11 +1364,8 @@ const Graphs = () => {
       {/* Slide container with swipe support */}
       <div
         ref={containerRef}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
         style={{
-          touchAction: isHorizontalSwipe ? 'none' : 'pan-y',
+          touchAction: 'pan-y pinch-zoom', // Allow vertical scroll and pinch, we handle horizontal
           userSelect: 'none',
           WebkitUserSelect: 'none',
           overflow: 'hidden',
