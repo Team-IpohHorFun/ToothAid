@@ -129,8 +129,9 @@ export const groupVisitsByBucket = (visits, granularity) => {
 
     bucketVisits.forEach(visit => {
       const childId = visit.childId;
-      const visitDate = new Date(visit.date);
-      if (!latestPerChild[childId] || visitDate > new Date(latestPerChild[childId].date)) {
+      const visitTime = new Date(visit.date).getTime();
+      const existing = latestPerChild[childId];
+      if (!existing || visitTime > new Date(existing.date).getTime()) {
         latestPerChild[childId] = visit;
       }
     });
@@ -258,9 +259,10 @@ export const getCumulativeLatestVisits = (visits, bucketKeys, granularity) => {
     const bucketVisits = visitsByBucket[bucketKey] || [];
     bucketVisits.forEach(visit => {
       const childId = visit.childId;
-      const visitDate = new Date(visit.date);
+      const visitTime = new Date(visit.date).getTime();
+      const existing = latestByChild[childId];
       // Update if this is the first visit for this child or if it's more recent
-      if (!latestByChild[childId] || visitDate > new Date(latestByChild[childId].date)) {
+      if (!existing || visitTime > new Date(existing.date).getTime()) {
         latestByChild[childId] = visit;
       }
     });
@@ -297,7 +299,7 @@ export const assertChartData = (data, chartName) => {
     if (data.length > 1 && data[0].label) {
       let prevSortValue = -Infinity;
       let isChronological = true;
-      data.forEach((point, index) => {
+      data.forEach((point) => {
         if (point.bucketKey) {
           const sortValue = bucketKeyToSortValue(point.bucketKey);
           if (sortValue < prevSortValue) {

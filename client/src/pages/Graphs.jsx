@@ -51,6 +51,9 @@ const Graphs = () => {
   
   // Store raw visits for pie chart filtering
   const [allVisits, setAllVisits] = useState([]);
+  
+  // Active point state for custom tooltip (only shows when dot is touched directly)
+  const [activePoint, setActivePoint] = useState(null); // { chartId, index, x, y, value, label }
 
   // Minimum swipe distance (in pixels)
   const minSwipeDistance = 50;
@@ -83,6 +86,7 @@ const Graphs = () => {
     if (currentSlide < slides.length - 1 && !isTransitioning) {
       setIsTransitioning(true);
       setCurrentSlide((prev) => prev + 1);
+      setActivePoint(null); // Clear tooltip when switching slides
       setTimeout(() => setIsTransitioning(false), 300);
     }
   };
@@ -91,6 +95,7 @@ const Graphs = () => {
     if (currentSlide > 0 && !isTransitioning) {
       setIsTransitioning(true);
       setCurrentSlide((prev) => prev - 1);
+      setActivePoint(null); // Clear tooltip when switching slides
       setTimeout(() => setIsTransitioning(false), 300);
     }
   };
@@ -149,6 +154,7 @@ const Graphs = () => {
   // Handle granularity change
   const handleGranularityChange = (newGranularity) => {
     setGranularity(newGranularity);
+    setActivePoint(null); // Clear tooltip when changing view
   };
 
   useEffect(() => {
@@ -516,6 +522,80 @@ const Graphs = () => {
       .sort((a, b) => b.value - a.value);
   }, [filteredVisitsForPie]);
 
+  // Custom interactive dot component - only responds to direct touch/click on the dot
+  const createInteractiveDot = (chartId, color, dataKey, valueFormatter) => {
+    return (props) => {
+      const { cx, cy, payload, index } = props;
+      if (cx === undefined || cy === undefined || payload[dataKey] === null) return null;
+      
+      const isActive = activePoint?.chartId === chartId && activePoint?.index === index;
+      const radius = isActive ? 10 : 6;
+      
+      const handleClick = (e) => {
+        e.stopPropagation();
+        if (isActive) {
+          setActivePoint(null);
+        } else {
+          setActivePoint({
+            chartId,
+            index,
+            x: cx,
+            y: cy,
+            value: payload[dataKey],
+            label: payload.label,
+            formattedValue: valueFormatter(payload[dataKey])
+          });
+        }
+      };
+      
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={radius}
+          fill={color}
+          stroke="#fff"
+          strokeWidth={2}
+          style={{ cursor: 'pointer', transition: 'r 0.15s' }}
+          onClick={handleClick}
+          onTouchEnd={handleClick}
+        />
+      );
+    };
+  };
+  
+  // Custom tooltip that appears near the selected point
+  const CustomPointTooltip = ({ chartId }) => {
+    if (!activePoint || activePoint.chartId !== chartId) return null;
+    
+    return (
+      <div style={{
+        position: 'absolute',
+        left: activePoint.x,
+        top: activePoint.y - 45,
+        transform: 'translateX(-50%)',
+        background: 'rgba(255, 255, 255, 0.95)',
+        border: '1px solid #ccc',
+        borderRadius: '4px',
+        padding: '6px 10px',
+        fontSize: '12px',
+        fontWeight: '600',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+        pointerEvents: 'none',
+        zIndex: 10,
+        whiteSpace: 'nowrap'
+      }}>
+        <div style={{ color: '#666', fontSize: '11px' }}>{activePoint.label}</div>
+        <div style={{ color: '#333' }}>{activePoint.formattedValue}</div>
+      </div>
+    );
+  };
+  
+  // Clear active point when clicking outside
+  const handleChartClick = () => {
+    setActivePoint(null);
+  };
+
   // Granularity selector component for line charts
   const GranularitySelector = () => (
     <div style={{
@@ -569,27 +649,26 @@ const Graphs = () => {
               <h2 style={{ fontSize: '18px', margin: 0 }}>Average Decayed Teeth per Child (D)</h2>
             </div>
             <GranularitySelector />
-            <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-              <LineChart data={chartData.avgDecayedTeeth} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
-                  formatter={(value) => [value.toFixed(2), 'Avg Decayed Teeth']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="avgD" 
-                  stroke="var(--color-accent)" 
-                  strokeWidth={3}
-                  dot={{ fill: 'var(--color-accent)', r: 6, strokeWidth: 2, stroke: '#fff' }}
-                  activeDot={{ r: 10, strokeWidth: 2, stroke: '#fff' }}
-                  name="Average Decayed Teeth"
-                  connectNulls={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div style={{ position: 'relative' }} onClick={handleChartClick}>
+              <CustomPointTooltip chartId="avgDecayedTeeth" />
+              <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+                <LineChart data={chartData.avgDecayedTeeth} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis />
+                  <Line 
+                    type="monotone" 
+                    dataKey="avgD" 
+                    stroke="var(--color-accent)" 
+                    strokeWidth={3}
+                    dot={createInteractiveDot('avgDecayedTeeth', 'var(--color-accent)', 'avgD', (v) => `${v.toFixed(2)} avg decayed`)}
+                    activeDot={false}
+                    name="Average Decayed Teeth"
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         );
 
@@ -600,27 +679,26 @@ const Graphs = () => {
               <h2 style={{ fontSize: '18px', margin: 0 }}>% of Children with ≥1 Decayed Tooth</h2>
             </div>
             <GranularitySelector />
-            <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-              <LineChart data={chartData.pctWithDecay} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis domain={[0, 100]} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
-                  formatter={(value) => [`${value}%`, 'Percentage']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="pct" 
-                  stroke="var(--color-warning)" 
-                  strokeWidth={3}
-                  dot={{ fill: 'var(--color-warning)', r: 6, strokeWidth: 2, stroke: '#fff' }}
-                  activeDot={{ r: 10, strokeWidth: 2, stroke: '#fff' }}
-                  name="% with Decay"
-                  connectNulls={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div style={{ position: 'relative' }} onClick={handleChartClick}>
+              <CustomPointTooltip chartId="pctWithDecay" />
+              <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+                <LineChart data={chartData.pctWithDecay} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="pct" 
+                    stroke="var(--color-warning)" 
+                    strokeWidth={3}
+                    dot={createInteractiveDot('pctWithDecay', 'var(--color-warning)', 'pct', (v) => `${v}%`)}
+                    activeDot={false}
+                    name="% with Decay"
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         );
 
@@ -631,27 +709,26 @@ const Graphs = () => {
               <h2 style={{ fontSize: '18px', margin: 0 }}>F / DMFT Ratio</h2>
             </div>
             <GranularitySelector />
-            <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-              <LineChart data={chartData.fDmftRatio} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis domain={[0, 100]} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
-                  formatter={(value) => [`${value}%`, 'F/DMFT Ratio']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="ratio" 
-                  stroke="var(--color-success)" 
-                  strokeWidth={3}
-                  dot={{ fill: 'var(--color-success)', r: 6, strokeWidth: 2, stroke: '#fff' }}
-                  activeDot={{ r: 10, strokeWidth: 2, stroke: '#fff' }}
-                  name="F/DMFT %"
-                  connectNulls={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div style={{ position: 'relative' }} onClick={handleChartClick}>
+              <CustomPointTooltip chartId="fDmftRatio" />
+              <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+                <LineChart data={chartData.fDmftRatio} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis domain={[0, 100]} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="ratio" 
+                    stroke="var(--color-success)" 
+                    strokeWidth={3}
+                    dot={createInteractiveDot('fDmftRatio', 'var(--color-success)', 'ratio', (v) => `${v}% F/DMFT`)}
+                    activeDot={false}
+                    name="F/DMFT %"
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         );
 
@@ -749,7 +826,16 @@ const Graphs = () => {
                   ))}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                    border: '1px solid #ccc', 
+                    borderRadius: '4px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                    padding: '6px 10px',
+                    fontSize: '12px'
+                  }}
+                  labelStyle={{ color: '#666', fontSize: '11px', marginBottom: '2px' }}
+                  itemStyle={{ color: '#333', fontWeight: '600' }}
                   formatter={(value, name) => [value, name || 'Count']}
                 />
               </PieChart>
@@ -808,7 +894,16 @@ const Graphs = () => {
                 />
                 <YAxis />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                    border: '1px solid #ccc', 
+                    borderRadius: '4px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                    padding: '6px 10px',
+                    fontSize: '12px'
+                  }}
+                  labelStyle={{ color: '#666', fontSize: '11px', marginBottom: '2px' }}
+                  itemStyle={{ fontWeight: '600' }}
                 />
                 <Bar dataKey="Filling" stackId="a" fill={colors.Filling} />
                 <Bar dataKey="Extraction" stackId="a" fill={colors.Extraction} />
@@ -887,7 +982,16 @@ const Graphs = () => {
                 />
                 <YAxis />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                    border: '1px solid #ccc', 
+                    borderRadius: '4px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                    padding: '6px 10px',
+                    fontSize: '12px'
+                  }}
+                  labelStyle={{ color: '#666', fontSize: '11px', marginBottom: '2px' }}
+                  itemStyle={{ color: '#333', fontWeight: '600' }}
                   formatter={(value) => [value.toFixed(2), 'Average DMFT']}
                 />
                 <Bar dataKey="avgDmft" name="Average DMFT" radius={[8, 8, 0, 0]}>
@@ -932,27 +1036,26 @@ const Graphs = () => {
               <h2 style={{ fontSize: '18px', margin: 0 }}>Average DMFT Over Time</h2>
             </div>
             <GranularitySelector />
-            <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-              <LineChart data={chartData.avgDmftOverTime} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.95)', border: '1px solid #ccc', borderRadius: '4px' }}
-                  formatter={(value) => [value.toFixed(2), 'Average DMFT']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="avgDmft" 
-                  stroke="var(--color-primary)" 
-                  strokeWidth={3}
-                  dot={{ fill: 'var(--color-primary)', r: 6, strokeWidth: 2, stroke: '#fff' }}
-                  activeDot={{ r: 10, strokeWidth: 2, stroke: '#fff' }}
-                  name="Average DMFT"
-                  connectNulls={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div style={{ position: 'relative' }} onClick={handleChartClick}>
+              <CustomPointTooltip chartId="avgDmftOverTime" />
+              <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+                <LineChart data={chartData.avgDmftOverTime} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis />
+                  <Line 
+                    type="monotone" 
+                    dataKey="avgDmft" 
+                    stroke="var(--color-primary)" 
+                    strokeWidth={3}
+                    dot={createInteractiveDot('avgDmftOverTime', 'var(--color-primary)', 'avgDmft', (v) => `${v.toFixed(2)} avg DMFT`)}
+                    activeDot={false}
+                    name="Average DMFT"
+                    connectNulls={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         );
 
