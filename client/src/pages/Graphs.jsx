@@ -601,16 +601,14 @@ const Graphs = () => {
     <div style={{
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      marginBottom: '12px'
+      gap: '8px'
     }}>
-      <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '500' }}>View:</span>
+      <span style={{ fontSize: '13px', color: '#8e8e93' }}>View:</span>
       <div style={{
         display: 'flex',
-        background: '#f0f0f0',
-        borderRadius: '6px',
-        padding: '2px',
-        gap: '2px'
+        background: '#f2f2f7',
+        borderRadius: '8px',
+        padding: '3px'
       }}>
         {[
           { value: '1M', label: 'Monthly' },
@@ -621,16 +619,15 @@ const Graphs = () => {
             key={option.value}
             onClick={() => handleGranularityChange(option.value)}
             style={{
-              padding: '4px 10px',
+              padding: '6px 12px',
               border: 'none',
-              borderRadius: '4px',
-              fontSize: '11px',
-              fontWeight: '600',
+              borderRadius: '6px',
+              fontSize: '13px',
+              fontWeight: '500',
               cursor: 'pointer',
               transition: 'all 0.2s',
-              background: granularity === option.value ? 'white' : 'transparent',
-              color: granularity === option.value ? 'var(--color-primary)' : '#666',
-              boxShadow: granularity === option.value ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
+              background: granularity === option.value ? 'var(--color-primary)' : 'transparent',
+              color: granularity === option.value ? 'white' : '#8e8e93'
             }}
           >
             {option.label}
@@ -652,7 +649,7 @@ const Graphs = () => {
             <div style={{ position: 'relative' }} onClick={handleChartClick}>
               <CustomPointTooltip chartId="avgDecayedTeeth" />
               <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-                <LineChart data={chartData.avgDecayedTeeth} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
+                <LineChart data={chartData.avgDecayedTeeth} margin={{ top: 10, right: 10, bottom: 5, left: -20 }} style={{ outline: 'none' }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis />
@@ -682,7 +679,7 @@ const Graphs = () => {
             <div style={{ position: 'relative' }} onClick={handleChartClick}>
               <CustomPointTooltip chartId="pctWithDecay" />
               <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-                <LineChart data={chartData.pctWithDecay} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
+                <LineChart data={chartData.pctWithDecay} margin={{ top: 10, right: 10, bottom: 5, left: -20 }} style={{ outline: 'none' }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} />
@@ -712,7 +709,7 @@ const Graphs = () => {
             <div style={{ position: 'relative' }} onClick={handleChartClick}>
               <CustomPointTooltip chartId="fDmftRatio" />
               <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-                <LineChart data={chartData.fDmftRatio} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
+                <LineChart data={chartData.fDmftRatio} margin={{ top: 10, right: 10, bottom: 5, left: -20 }} style={{ outline: 'none' }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} />
@@ -763,49 +760,48 @@ const Graphs = () => {
         };
         
         return (
-          <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-              <h2 style={{ fontSize: '18px', margin: 0 }}>Treatments by Type</h2>
-            </div>
-            {/* Time filter selector for pie chart */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              marginBottom: '12px'
-            }}>
-              <span style={{ fontSize: '12px', color: 'var(--color-muted)', fontWeight: '500' }}>View:</span>
-              <div style={{
-                display: 'flex',
-                background: '#f0f0f0',
-                borderRadius: '6px',
-                padding: '2px',
-                gap: '2px'
-              }}>
-                {[
-                  { value: '6M', label: 'Last 6 months' },
-                  { value: '1Y', label: 'Last 1 year' },
-                  { value: 'ALL', label: 'All data' }
-                ].map(option => (
-                  <button
-                    key={option.value}
-                    onClick={() => setPieTimeFilter(option.value)}
-                    style={{
-                      padding: '4px 10px',
-                      border: 'none',
-                      borderRadius: '4px',
-                      fontSize: '11px',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      background: pieTimeFilter === option.value ? 'white' : 'transparent',
-                      color: pieTimeFilter === option.value ? 'var(--color-primary)' : '#666',
-                      boxShadow: pieTimeFilter === option.value ? '0 1px 2px rgba(0,0,0,0.1)' : 'none'
-                    }}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+          <div style={{ 
+            background: 'white', 
+            borderRadius: '16px', 
+            padding: '20px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+            marginBottom: '20px'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+              <h2 style={{ fontSize: '17px', fontWeight: '600', margin: 0, color: '#1c1c1e' }}>Treatments by Type</h2>
+              {/* Time filter selector for pie chart */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '13px', color: '#8e8e93' }}>View:</span>
+                <div style={{
+                  display: 'flex',
+                  background: '#f2f2f7',
+                  borderRadius: '8px',
+                  padding: '3px'
+                }}>
+                  {[
+                    { value: '6M', label: '6 months' },
+                    { value: '1Y', label: '1 year' },
+                    { value: 'ALL', label: 'All' }
+                  ].map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => setPieTimeFilter(option.value)}
+                      style={{
+                        padding: '6px 12px',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        background: pieTimeFilter === option.value ? 'var(--color-primary)' : 'transparent',
+                        color: pieTimeFilter === option.value ? 'white' : '#8e8e93'
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={280} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
@@ -886,13 +882,15 @@ const Graphs = () => {
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
             <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Treatments by School</h2>
             <ResponsiveContainer width="100%" height={250} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-              <BarChart data={chartData.treatmentsBySchool} margin={{ top: 5, right: 20, bottom: 10, left: 0 }} style={{ outline: 'none' }}>
+              <BarChart data={chartData.treatmentsBySchool} margin={{ top: 5, right: 10, bottom: 10, left: -20 }} style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="school" 
-                  hide={true}
+                  tick={false}
+                  axisLine={{ stroke: '#ccc' }}
+                  tickLine={false}
                 />
-                <YAxis />
+                <YAxis domain={[0, 'auto']} />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.95)', 
@@ -974,13 +972,15 @@ const Graphs = () => {
           <div className="card" style={{ marginBottom: '20px', minHeight: '300px' }}>
             <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Average DMFT by School</h2>
             <ResponsiveContainer width="100%" height={250} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-              <BarChart data={chartData.avgDmftBySchool} margin={{ top: 5, right: 20, bottom: 10, left: 0 }} style={{ outline: 'none' }}>
+              <BarChart data={chartData.avgDmftBySchool} margin={{ top: 5, right: 10, bottom: 10, left: -20 }} style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis 
                   dataKey="school" 
-                  hide={true}
+                  tick={false}
+                  axisLine={{ stroke: '#ccc' }}
+                  tickLine={false}
                 />
-                <YAxis />
+                <YAxis domain={[0, 'auto']} />
                 <Tooltip 
                   contentStyle={{ 
                     backgroundColor: 'rgba(255, 255, 255, 0.95)', 
@@ -1039,7 +1039,7 @@ const Graphs = () => {
             <div style={{ position: 'relative' }} onClick={handleChartClick}>
               <CustomPointTooltip chartId="avgDmftOverTime" />
               <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
-                <LineChart data={chartData.avgDmftOverTime} margin={{ top: 20, right: 20, bottom: 5, left: 0 }} style={{ outline: 'none' }}>
+                <LineChart data={chartData.avgDmftOverTime} margin={{ top: 10, right: 10, bottom: 5, left: -20 }} style={{ outline: 'none' }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="label" tick={{ fontSize: 11 }} />
                   <YAxis />
@@ -1217,34 +1217,37 @@ const Graphs = () => {
         Trends
       </h2>
 
-      {/* Navigation buttons */}
+      {/* Navigation */}
       <div style={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
+        justifyContent: 'center', 
         alignItems: 'center',
-        marginBottom: '12px',
-        padding: '0 4px'
+        gap: '16px',
+        marginBottom: '16px'
       }}>
         <button
           onClick={handlePrev}
           disabled={currentSlide === 0}
           style={{
-            padding: '8px 16px',
+            width: '32px',
+            height: '32px',
             border: 'none',
-            borderRadius: '8px',
-            background: currentSlide === 0 ? 'var(--color-disabled-bg)' : 'var(--color-primary)',
-            color: 'white',
+            borderRadius: '50%',
+            background: currentSlide === 0 ? '#f2f2f7' : 'var(--color-primary)',
+            color: currentSlide === 0 ? '#c7c7cc' : 'white',
             cursor: currentSlide === 0 ? 'not-allowed' : 'pointer',
-            fontSize: '14px',
-            fontWeight: '600',
-            opacity: currentSlide === 0 ? 0.5 : 1
+            fontSize: '18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '300'
           }}
         >
-          ← Prev
+          ‹
         </button>
 
         {/* Slide indicators */}
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
           {availableSlides.map((_, index) => (
             <button
               key={index}
@@ -1256,11 +1259,11 @@ const Graphs = () => {
                 }
               }}
               style={{
-                width: index === currentSlide ? '24px' : '8px',
-                height: '8px',
-                borderRadius: '4px',
+                width: index === currentSlide ? '18px' : '6px',
+                height: '6px',
+                borderRadius: '3px',
                 border: 'none',
-                background: index === currentSlide ? 'var(--color-primary)' : 'var(--color-disabled-bg)',
+                background: index === currentSlide ? 'var(--color-primary)' : '#d1d1d6',
                 cursor: 'pointer',
                 transition: 'all 0.3s'
               }}
@@ -1273,18 +1276,21 @@ const Graphs = () => {
           onClick={handleNext}
           disabled={currentSlide === availableSlides.length - 1}
           style={{
-            padding: '8px 16px',
+            width: '32px',
+            height: '32px',
             border: 'none',
-            borderRadius: '8px',
-            background: currentSlide === availableSlides.length - 1 ? 'var(--color-disabled-bg)' : 'var(--color-primary)',
-            color: 'white',
+            borderRadius: '50%',
+            background: currentSlide === availableSlides.length - 1 ? '#f2f2f7' : 'var(--color-primary)',
+            color: currentSlide === availableSlides.length - 1 ? '#c7c7cc' : 'white',
             cursor: currentSlide === availableSlides.length - 1 ? 'not-allowed' : 'pointer',
-            fontSize: '14px',
-            fontWeight: '600',
-            opacity: currentSlide === availableSlides.length - 1 ? 0.5 : 1
+            fontSize: '18px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: '300'
           }}
         >
-          Next →
+          ›
         </button>
       </div>
 
@@ -1325,16 +1331,16 @@ const Graphs = () => {
         </div>
       </div>
 
-      {/* Slide counter */}
-      <div style={{ 
+      {/* Swipe hint */}
+      <p style={{ 
         textAlign: 'center', 
-        color: '#666', 
+        color: '#c7c7cc', 
         fontSize: '12px', 
         marginTop: '8px',
         marginBottom: '16px'
       }}>
-        {currentSlide + 1} of {availableSlides.length}
-      </div>
+        Swipe to see more trends
+      </p>
 
       <NavBar />
     </div>

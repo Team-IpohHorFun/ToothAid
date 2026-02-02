@@ -1,49 +1,81 @@
 const PageHeader = ({ title, subtitle, icon }) => {
-  // Icon components matching NavBar icons
+  // Outline icon components matching NavBar icons
   const icons = {
     children: (
-      <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '80px', height: '80px' }}>
-        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '80px', height: '80px' }}>
+        <circle cx="9" cy="7" r="3" />
+        <path d="M9 12c-3.5 0-6 1.5-6 3v2h12v-2c0-1.5-2.5-3-6-3z" />
+        <circle cx="17" cy="7" r="2.5" />
+        <path d="M17 11c1.5 0 4 .8 4 2v2h-4" />
       </svg>
     ),
     visit: (
-      <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '80px', height: '80px' }}>
-        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '80px', height: '80px' }}>
+        <rect x="5" y="3" width="14" height="18" rx="2" />
+        <path d="M9 7h6" />
+        <path d="M9 11h6" />
+        <path d="M9 15h4" />
       </svg>
     ),
     reports: (
-      <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '80px', height: '80px' }}>
-        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '80px', height: '80px' }}>
+        <path d="M3 3v18h18" />
+        <path d="M7 16v-4" strokeLinecap="round" />
+        <path d="M11 16v-7" strokeLinecap="round" />
+        <path d="M15 16v-5" strokeLinecap="round" />
+        <path d="M19 16v-9" strokeLinecap="round" />
       </svg>
     ),
     sync: (
-      <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '80px', height: '80px' }}>
-        <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '80px', height: '80px' }}>
+        <path d="M4 12c0-4.4 3.6-8 8-8 2.8 0 5.2 1.4 6.6 3.5" />
+        <path d="M20 12c0 4.4-3.6 8-8 8-2.8 0-5.2-1.4-6.6-3.5" />
+        <path d="M16 4l3 3.5-3.5 3" />
+        <path d="M8 20l-3-3.5 3.5-3" />
       </svg>
     ),
     clinic: (
-      <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '80px', height: '80px' }}>
-        <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '80px', height: '80px' }}>
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="M3 10h18" />
+        <path d="M8 2v4" />
+        <path d="M16 2v4" />
+        <rect x="6" y="13" width="4" height="4" rx="0.5" />
       </svg>
     ),
     profile: (
-      <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '80px', height: '80px' }}>
-        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '80px', height: '80px' }}>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
       </svg>
     ),
     alert: (
-      <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '80px', height: '80px' }}>
-        <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '80px', height: '80px' }}>
+        <path d="M12 3L2 21h20L12 3z" />
+        <path d="M12 9v4" strokeLinecap="round" />
+        <circle cx="12" cy="17" r="0.5" fill="currentColor" />
       </svg>
     ),
     roster: (
-      <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '80px', height: '80px' }}>
-        <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '80px', height: '80px' }}>
+        <rect x="5" y="3" width="14" height="18" rx="2" />
+        <path d="M9 7h6" />
+        <path d="M9 11h6" />
+        <path d="M9 15h6" />
+        <circle cx="12" cy="5" r="1.5" />
       </svg>
     ),
     tooth: (
-      <svg viewBox="0 0 24 24" fill="currentColor" style={{ width: '80px', height: '80px' }}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '80px', height: '80px' }}>
         <path d="M12 2C9.5 2 7 3 6 5C5 7 5 9 5.5 11C6 13 6.5 15 7 17C7.5 19 8 21 9 22C9.5 22.5 10.5 22.5 11 21C11.5 19.5 12 18 12 18C12 18 12.5 19.5 13 21C13.5 22.5 14.5 22.5 15 22C16 21 16.5 19 17 17C17.5 15 18 13 18.5 11C19 9 19 7 18 5C17 3 14.5 2 12 2Z"/>
+      </svg>
+    ),
+    today: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ width: '80px', height: '80px' }}>
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <path d="M3 10h18" />
+        <path d="M8 2v4" />
+        <path d="M16 2v4" />
       </svg>
     )
   };
@@ -68,7 +100,7 @@ const PageHeader = ({ title, subtitle, icon }) => {
         right: '20px',
         top: '50%',
         transform: 'translateY(-50%)',
-        color: 'rgba(255, 255, 255, 0.15)',
+        color: 'rgba(255, 255, 255, 0.2)',
         pointerEvents: 'none'
       }}>
         {selectedIcon}

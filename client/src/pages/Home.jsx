@@ -149,16 +149,27 @@ const Home = ({ setToken }) => {
               navigate('/login');
             }}
             style={{ 
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
               padding: '8px 14px',
               fontSize: '13px',
-              background: 'rgba(255,255,255,0.2)',
-              border: '1px solid rgba(255,255,255,0.3)',
-              borderRadius: 'var(--radius-btn)',
+              background: 'rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              borderRadius: '20px',
               color: 'white',
               cursor: 'pointer',
-              fontWeight: '500'
+              fontWeight: '500',
+              boxShadow: 'inset 0 1px 1px rgba(255,255,255,0.1), 0 2px 8px rgba(0,0,0,0.08)'
             }}
           >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: '16px', height: '16px' }}>
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
             Logout
           </button>
         </div>
@@ -286,46 +297,78 @@ const Home = ({ setToken }) => {
           Quick Actions
         </h2>
 
-        {/* Primary Action - Add Visit */}
-        <Link to="/register" style={{ textDecoration: 'none' }}>
-          <button 
-            className="btn btn-primary btn-block"
-            style={{ 
-              marginBottom: '10px',
-              fontSize: '16px',
-              fontWeight: '600',
-              height: '52px'
-            }}
-          >
-            + Add Visit
-          </button>
-        </Link>
-
-        {/* Secondary Actions */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <Link to="/search" style={{ textDecoration: 'none' }}>
-            <button 
-              className="btn btn-secondary btn-block"
-              style={{ 
-                margin: 0,
-                fontSize: '14px',
-                height: '46px'
-              }}
-            >
-              Find Child
-            </button>
+        {/* Action Cards Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+          {/* Add Visit */}
+          <Link to="/register" style={{ textDecoration: 'none' }}>
+            <div style={{
+              background: 'var(--color-primary)',
+              borderRadius: '12px',
+              padding: '16px 12px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'transform 0.15s, box-shadow 0.15s',
+              boxShadow: '0 2px 8px rgba(13, 148, 136, 0.25)'
+            }}>
+              <svg viewBox="0 0 24 24" fill="white" style={{ width: '28px', height: '28px', marginBottom: '6px' }}>
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+              </svg>
+              <div style={{
+                color: 'white',
+                fontSize: '13px',
+                fontWeight: '600'
+              }}>
+                Add Visit
+              </div>
+            </div>
           </Link>
+
+          {/* Find Child */}
           <Link to="/search" style={{ textDecoration: 'none' }}>
-            <button 
-              className="btn btn-secondary btn-block"
-              style={{ 
-                margin: 0,
-                fontSize: '14px',
-                height: '46px'
-              }}
-            >
-              Register Child
-            </button>
+            <div style={{
+              background: '#f8f9fa',
+              border: '1px solid #e9ecef',
+              borderRadius: '12px',
+              padding: '16px 12px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'transform 0.15s, box-shadow 0.15s'
+            }}>
+              <svg viewBox="0 0 24 24" fill="#495057" style={{ width: '28px', height: '28px', marginBottom: '6px' }}>
+                <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+              </svg>
+              <div style={{
+                color: '#495057',
+                fontSize: '13px',
+                fontWeight: '600'
+              }}>
+                Find Child
+              </div>
+            </div>
+          </Link>
+
+          {/* Register Child */}
+          <Link to="/search?register=true" style={{ textDecoration: 'none' }}>
+            <div style={{
+              background: '#f8f9fa',
+              border: '1px solid #e9ecef',
+              borderRadius: '12px',
+              padding: '16px 12px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'transform 0.15s, box-shadow 0.15s'
+            }}>
+              <svg viewBox="0 0 24 24" fill="#495057" style={{ width: '28px', height: '28px', marginBottom: '6px' }}>
+                <path d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              </svg>
+              <div style={{
+                color: '#495057',
+                fontSize: '13px',
+                fontWeight: '600'
+              }}>
+                New Child
+              </div>
+            </div>
           </Link>
         </div>
       </div>

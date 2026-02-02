@@ -149,17 +149,38 @@ const RegisterChild = ({ token }) => {
   return (
     <div className="container">
       {/* Header changes based on whether child is selected */}
-<PageHeader title="Add Visit" subtitle={selectedChild ? selectedChild.fullName : 'Select a child first'} icon="visit" />
+<PageHeader title="Add Visit" subtitle="Record a new dental visit" icon="visit" />
 
       {/* Child Selection View */}
       {!selectedChild ? (
         <>
-          <div className="form-group">
+          {/* Search Input - Apple Style */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: '#f2f2f7',
+            borderRadius: '12px',
+            padding: '0 12px',
+            marginBottom: '16px'
+          }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2" style={{ width: '18px', height: '18px', flexShrink: 0 }}>
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+            </svg>
             <input
               type="text"
               placeholder="Search by name, school, or barangay..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              style={{
+                flex: 1,
+                background: 'transparent',
+                border: 'none',
+                outline: 'none',
+                padding: '12px 10px',
+                fontSize: '16px',
+                color: '#1c1c1e'
+              }}
             />
           </div>
 
@@ -257,25 +278,57 @@ const RegisterChild = ({ token }) => {
 
               <div className="form-group">
                 <label>Flags</label>
-                <div className="checkbox-group">
-                  <input
-                    type="checkbox"
-                    id="painFlag"
-                    name="painFlag"
-                    checked={formData.painFlag}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="painFlag">Pain</label>
-                </div>
-                <div className="checkbox-group">
-                  <input
-                    type="checkbox"
-                    id="swellingFlag"
-                    name="swellingFlag"
-                    checked={formData.swellingFlag}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="swellingFlag">Swelling</label>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, painFlag: !prev.painFlag }))}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '12px 18px',
+                      borderRadius: '12px',
+                      border: formData.painFlag ? '2px solid var(--color-primary)' : '2px solid #e5e5ea',
+                      background: formData.painFlag ? 'var(--color-primary-soft)' : '#f2f2f7',
+                      color: formData.painFlag ? 'var(--color-primary)' : '#1c1c1e',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {formData.painFlag && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '16px', height: '16px' }}>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                    Pain
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, swellingFlag: !prev.swellingFlag }))}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '12px 18px',
+                      borderRadius: '12px',
+                      border: formData.swellingFlag ? '2px solid var(--color-primary)' : '2px solid #e5e5ea',
+                      background: formData.swellingFlag ? 'var(--color-primary-soft)' : '#f2f2f7',
+                      color: formData.swellingFlag ? 'var(--color-primary)' : '#1c1c1e',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {formData.swellingFlag && (
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '16px', height: '16px' }}>
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                    )}
+                    Swelling
+                  </button>
                 </div>
               </div>
 
@@ -317,19 +370,46 @@ const RegisterChild = ({ token }) => {
 
               <div className="form-group">
                 <label>Treatment Types</label>
-                {treatmentOptions.map(option => (
-                  <div key={option} className="checkbox-group">
-                    <input
-                      type="checkbox"
-                      id={`treatment-${option}`}
-                      name="treatmentTypes"
-                      value={option}
-                      checked={formData.treatmentTypes.includes(option)}
-                      onChange={handleChange}
-                    />
-                    <label htmlFor={`treatment-${option}`}>{option}</label>
-                  </div>
-                ))}
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {treatmentOptions.map(option => {
+                    const isSelected = formData.treatmentTypes.includes(option);
+                    return (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => {
+                          setFormData(prev => ({
+                            ...prev,
+                            treatmentTypes: isSelected
+                              ? prev.treatmentTypes.filter(t => t !== option)
+                              : [...prev.treatmentTypes, option]
+                          }));
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '12px 18px',
+                          borderRadius: '12px',
+                          border: isSelected ? '2px solid var(--color-primary)' : '2px solid #e5e5ea',
+                          background: isSelected ? 'var(--color-primary-soft)' : '#f2f2f7',
+                          color: isSelected ? 'var(--color-primary)' : '#1c1c1e',
+                          fontSize: '15px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {isSelected && (
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '16px', height: '16px' }}>
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                        {option}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="form-group">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
@@ -7,10 +7,12 @@ import { searchChildren, getAllChildren, upsertChild, addToOutbox, checkDuplicat
 
 const SearchChild = ({ token }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showRegisterForm, setShowRegisterForm] = useState(false);
+  // Check URL param to auto-open register form
+  const [showRegisterForm, setShowRegisterForm] = useState(searchParams.get('register') === 'true');
   
   // Register form state (exact same as original RegisterChild)
   const [formData, setFormData] = useState({
@@ -152,13 +154,33 @@ const SearchChild = ({ token }) => {
     <div className="container">
 <PageHeader title="Children" subtitle="Search or register children" icon="children" />
 
-      {/* Search Input */}
-      <div className="form-group">
+      {/* Search Input - Apple Style */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        background: '#f2f2f7',
+        borderRadius: '12px',
+        padding: '0 12px',
+        marginBottom: '16px'
+      }}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="#8e8e93" strokeWidth="2" style={{ width: '18px', height: '18px', flexShrink: 0 }}>
+          <circle cx="11" cy="11" r="7" />
+          <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
+        </svg>
         <input
           type="text"
           placeholder="Search by name, school, or barangay..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          style={{
+            flex: 1,
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            padding: '12px 10px',
+            fontSize: '16px',
+            color: '#1c1c1e'
+          }}
         />
       </div>
 
