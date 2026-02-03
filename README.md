@@ -1,504 +1,195 @@
-# ToothAid - Dental Data & Impact Monitoring System
+# ToothAid – Dental Data & Impact Monitoring
 
-An offline-first Progressive Web App (PWA) for managing dental clinic operations in Boctol, Upland Jagna. Built with MERN stack, designed to work fully offline on phones and laptops, with automatic sync when internet is available.
+Offline-first Progressive Web App (PWA) for dental clinic operations. Built with the MERN stack, designed to work fully offline on phones and laptops, with sync when the internet is available.
 
-## 🚀 Features
+## Features
 
-### Core Functionality
-- ✅ **Child Registration** - Register children with duplicate detection
-- ✅ **Search & Browse** - Search children by name, school, or barangay
-- ✅ **Visit Management** - Record screening and treatment visits
-- ✅ **DMFT Tracking** - Track Decayed, Missing, and Filled Teeth
-- ✅ **High-Risk Case Tracking** - Identify and monitor cases with pain or swelling flags
-- ✅ **Clinic Day Management** - Create and manage clinic days with capacity planning
-- ✅ **Appointment Scheduling** - Build rosters with priority-based scheduling (Emergency, High Priority, Routine)
-- ✅ **Time Window Management** - Schedule appointments in AM, PM, or Full Day slots
-- ✅ **Statistics & Graphs** - Comprehensive data visualization with interactive charts
-- ✅ **Full Offline Support** - Works completely offline with IndexedDB
-- ✅ **Automatic Sync** - Syncs data when internet connection is available
-- ✅ **Idempotent Operations** - No duplicate data on retry
+### Core
+- **Child registration** – Register children with duplicate detection
+- **Search & browse** – Search by name, school, or barangay
+- **Visit management** – Record screening and treatment visits
+- **DMFT tracking** – Decayed, Missing, and Filled Teeth
+- **High-risk cases** – Track pain/swelling flags and monitor cases
+- **Clinic days** – Create and manage clinic days with capacity
+- **Appointments** – Build rosters with priority (Emergency, High Priority, Routine) and time windows (AM, PM, Full Day)
+- **Statistics & graphs** – Interactive, swipeable charts with multiple time views
+- **Offline-first** – Full operation in IndexedDB when offline
+- **Sync** – Push/pull when online; idempotent operations to avoid duplicates
 
-### Statistics & Analytics
+### Statistics & Reports
 
-The Graphs page provides comprehensive data visualization with swipeable slides:
+The **Reports** (Graphs) page uses swipeable slides and time filters:
 
-1. **Average Decayed Teeth (D) per Child** (Line Chart)
-   - Monthly average of decayed teeth
-   - Uses latest visit per child per month
-   - Shows all months in range (missing months display as 0)
+1. **Average Decayed Teeth (D) per child** – Line chart; view by Monthly, Quarterly, or Half-year
+2. **% of children with ≥1 decayed tooth** – Line chart; same granularity options
+3. **F/DMFT ratio** – Line chart; population-level filled vs total DMFT
+4. **Treatments by type** – Pie chart; filter by Last 6 months, 1 year, or All
+5. **Treatments by school** – Stacked bar chart
+6. **Average DMFT by school** – Bar chart; latest visit per child
+7. **Average DMFT over time** – Line chart; same granularity as (1)–(3)
 
-2. **% of Children with ≥1 Decayed Tooth** (Line Chart)
-   - Monthly percentage of children with at least one decayed tooth
-   - Uses latest visit per child per month
+Charts use **rolling latest-visit-per-child** per time bucket (no gaps for missing months). Line charts have large touch targets and tooltips; horizontal swipes change slides without scrolling the page.
 
-3. **F/DMFT Ratio** (Line Chart)
-   - Monthly ratio of Filled teeth to total DMFT (population-level)
-   - Higher ratio indicates more treatment coverage
+### Clinic days & appointments
+- **Clinic day** – Date, school, capacity (total and optional AM/PM split; AM+PM = total)
+- **Roster** – Priority-based scheduling (Emergency, High Priority, Routine), time windows, slot numbers
+- **Appointments** – Status: Scheduled, Attended, Missed, Rescheduled, Cancelled
 
-4. **Treatments by Type** (Pie Chart)
-   - Distribution of treatment types: Filling, Extraction, Fluoride, Sealant, SDF, Cleaning, Other
-   - Shows percentages and counts
-   - Counts each treatment occurrence (multiple treatments per visit allowed)
-   - Clean legend layout with divider line
+### UI & UX
+- **Quick Actions (Home)** – Add Visit, Find Child, New Child as liquid-glass style cards
+- **Page headers** – Outline-style icons aligned with bottom nav
+- **Bottom nav** – Today, Children, Visit, Clinic, Reports, Sync; active state uses teal, no background fill
+- **Forms & inputs** – Light gray fields, teal focus ring, uppercase labels
+- **Search bars** – Rounded, light gray, inline search icon
+- **PWA** – Installable; custom tooth icon and manifest
 
-5. **Treatments by School (Top 10)** (Stacked Bar Chart)
-   - Treatment breakdown by school
-   - Stacked bars show treatment type distribution
-   - Only includes visits with actual treatments
-   - Row-by-row school legend for readability
+### Screens
+- **Login** – Auth with demo mode
+- **Home** – Dashboard, High-Risk Cases, Today’s Clinic, Quick Actions (Add Visit, Find Child, New Child), pending sync alert, Logout
+- **Children** – Search/browse
+- **Add Visit** – Record visit; select child then add visit (Flags and Treatment Types as chips)
+- **Child profile** – Details and visit timeline
+- **High-Risk Cases** – List and management
+- **Clinic Days** – List, Create Clinic Day, Build Roster, Clinic Day Roster
+- **Reports** – Swipeable charts; View: Monthly/Quarterly/Half-year; pie: 6 months/1 year/All
+- **Sync** – Status, last sync, pending changes, manual Sync Now
 
-6. **Average DMFT by School (Top 10)** (Bar Chart)
-   - Average DMFT score per school
-   - Uses each child's overall latest visit (one observation per child)
-   - Shows top 10 schools by highest average DMFT
-   - Row-by-row legend with DMFT values
+## Tech stack
 
-7. **Average DMFT Over Time** (Line Chart)
-   - Monthly average DMFT scores
-   - Uses latest visit per child per month
-   - Tracks trends over time
+- **Frontend:** React 18, Vite, React Router, PWA (vite-plugin-pwa)
+- **Charts:** Recharts
+- **Offline:** IndexedDB via Dexie
+- **Backend:** Node.js, Express, JWT
+- **Database:** MongoDB (Mongoose)
 
-### Clinic Day & Appointment Management
-
-The app includes comprehensive clinic day and appointment scheduling features:
-
-1. **Clinic Day Creation**
-   - Create clinic days with date, school, and capacity settings
-   - Set overall capacity or split into AM/PM capacity
-   - **AM + PM capacity must equal total capacity** (no wasted slots)
-   - Add notes for clinic day planning
-
-2. **Roster Building**
-   - Build appointment rosters with priority-based scheduling
-   - Priority tiers: Emergency, High Priority, Routine
-   - Automatic prioritization based on:
-     - High-risk cases (pain/swelling flags)
-     - Treatment history
-   - Time window assignment (AM, PM, or Full Day)
-   - Slot number management
-
-3. **Appointment Management**
-   - View all appointments for a clinic day
-   - Track appointment status (Scheduled, Attended, Missed, Rescheduled, Cancelled)
-   - Manage capacity across time windows
-   - Remove appointments from roster
-
-### UI Design
-- **Modern Page Headers** - Beautiful teal gradient headers with decorative icons
-- **PWA Ready** - Custom tooth icon, installable on home screen
-- **Consistent Branding** - ToothAid branding throughout the app
-
-### UI Screens
-- **Login** - Authentication with demo mode and tooth logo
-- **Home** - Dashboard with quick actions and statistics
-- **Children** - Search and browse children (user group icon)
-- **Add Visit** - Record screening or treatment visits (clipboard icon)
-- **Child Profile** - View child details and visit timeline (profile icon)
-- **High-Risk Cases** - View and manage high-risk cases (alert icon)
-- **Clinic Days** - View all scheduled clinic days (calendar icon)
-- **Create Clinic Day** - Create new clinic days with capacity settings
-- **Build Roster** - Build appointment rosters with priority-based scheduling (roster icon)
-- **Clinic Day Roster** - View and manage appointments for a clinic day
-- **Reports** - Interactive statistics and data visualization (chart icon)
-- **Sync** - Manual sync and sync status (sync icon)
-
-## 🛠 Tech Stack
-
-- **Frontend**: React 18 (Vite), PWA enabled, React Router
-- **Charts**: Recharts for data visualization
-- **Offline Storage**: IndexedDB using Dexie
-- **Backend**: Node.js + Express + JWT authentication
-- **Database**: MongoDB (Mongoose)
-
-## 📁 Project Structure
+## Project structure
 
 ```
 ToothAid/
-├── server/                 # Backend Express server
-│   ├── models/            # Mongoose schemas
-│   │   ├── Child.js       # Child data model
-│   │   ├── Visit.js       # Visit data model
-│   │   ├── ClinicDay.js   # Clinic day data model
-│   │   ├── Appointment.js # Appointment data model
-│   │   ├── ProcessedOp.js # Sync operation tracking
-│   │   └── User.js        # User authentication
-│   ├── routes/            # API routes
-│   │   ├── auth.js        # Authentication endpoints
-│   │   └── sync.js        # Sync endpoints
-│   ├── middleware/        # Express middleware
-│   │   └── auth.js        # JWT authentication
-│   ├── scripts/           # Utility scripts
-│   │   ├── seed.js        # Seed database with demo data
-│   │   ├── view-data.js   # View database contents
-│   │   └── migrate-visits.js # Data migration
-│   ├── db.js              # MongoDB connection
-│   ├── server.js          # Express app entry point
+├── server/
+│   ├── models/          # Child, Visit, ClinicDay, Appointment, ProcessedOp, User
+│   ├── routes/          # auth.js, sync.js
+│   ├── middleware/      # auth.js (JWT)
+│   ├── scripts/         # seed.js, view-data.js, migrate-visits.js
+│   ├── db.js
+│   ├── server.js
 │   └── package.json
-│
-├── client/                # Frontend React app
+├── client/
 │   ├── src/
-│   │   ├── db/           # IndexedDB operations
-│   │   │   └── indexedDB.js
-│   │   ├── pages/        # React page components
-│   │   │   ├── Login.jsx
-│   │   │   ├── Home.jsx
-│   │   │   ├── SearchChild.jsx
-│   │   │   ├── RegisterChild.jsx
-│   │   │   ├── ChildProfile.jsx
-│   │   │   ├── AddVisit.jsx
-│   │   │   ├── HighRiskList.jsx
-│   │   │   ├── ClinicDaysList.jsx
-│   │   │   ├── CreateClinicDay.jsx
-│   │   │   ├── ClinicDayRoster.jsx
-│   │   │   ├── BuildRoster.jsx
-│   │   │   ├── Graphs.jsx
-│   │   │   └── SyncPage.jsx
-│   │   ├── components/   # Reusable components
-│   │   │   ├── NavBar.jsx
-│   │   │   ├── PageHeader.jsx  # Beautiful page headers with icons
-│   │   │   └── DateInput.jsx
-│   │   ├── config.js     # API configuration
-│   │   ├── App.jsx
-│   │   ├── App.css
-│   │   ├── fonts.css
-│   │   └── main.jsx
-│   ├── public/
-│   │   ├── tooth-icon.svg    # App icon (PWA/favicon)
-│   │   └── manifest.json     # PWA manifest
-│   ├── vite.config.js
+│   │   ├── components/  # NavBar, PageHeader, DateInput
+│   │   ├── db/          # indexedDB.js
+│   │   ├── pages/       # Login, Home, SearchChild, RegisterChild, ChildProfile, etc.
+│   │   ├── utils/       # timeBuckets.js (chart bucketing)
+│   │   ├── config.js
+│   │   ├── App.jsx, App.css, fonts.css, main.jsx
+│   ├── public/          # tooth-icon.svg, manifest.json
+│   ├── vite.config.js   # dev server, API proxy, PWA
 │   ├── index.html
 │   └── package.json
-│
-├── docker-compose.yml     # Docker configuration for MongoDB
+├── docker-compose.yml   # MongoDB
 └── README.md
 ```
 
-## 🚦 Quick Start
+## Quick start
 
 ### Prerequisites
+- **Node.js** v18+ and npm
+- **MongoDB** (local, Docker, or Atlas)
 
-- **Node.js** (v18 or higher) and npm
-- **MongoDB** (see setup options below)
+**Node (macOS):** `brew install node`  
+**Node (Windows/Linux):** [nodejs.org](https://nodejs.org/) or NodeSource.
 
-#### Install Node.js
+**MongoDB options:**
+- **Atlas:** Create free M0 cluster, add user and IP access, get URI like  
+  `mongodb+srv://user:pass@cluster….mongodb.net/toothaid?retryWrites=true&w=majority`
+- **Docker:** From repo root run `docker-compose up -d` → `mongodb://localhost:27017/toothaid`
+- **Local:** Install MongoDB Community; default URI `mongodb://localhost:27017/toothaid`
 
-**macOS:**
-```bash
-brew install node
-```
+### Run locally
 
-**Windows:**
-Download from [nodejs.org](https://nodejs.org/) (LTS version)
+1. **Backend**
+   ```bash
+   cd server
+   npm install
+   ```
+   Create `server/.env`:
+   ```env
+   PORT=3001
+   MONGODB_URI=mongodb://localhost:27017/toothaid
+   JWT_SECRET=your-secret-key-change-in-production
+   NODE_ENV=development
+   ```
+   ```bash
+   npm run seed   # optional: demo user demo/demo
+   npm start      # http://localhost:3001
+   ```
 
-**Linux (Ubuntu/Debian):**
-```bash
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
-```
+2. **Frontend** (new terminal)
+   ```bash
+   cd client
+   npm install
+   npm run dev    # http://localhost:5173 or :3000
+   ```
+   The Vite dev server proxies `/api` to the backend. Default in `vite.config.js` is the Render backend; for local backend, set proxy target to `http://localhost:3001`.
 
-**Verify installation:**
-```bash
-node --version  # Should show v18.x.x or higher
-npm --version   # Should show 9.x.x or higher
-```
+### Demo login
+- Username: `demo`  
+- Password: `demo`
 
-### MongoDB Setup
+## Data models (summary)
 
-Choose one of the following options:
+- **Child:** childId, fullName, dob/age, sex, school, grade, barangay, guardianPhone, timestamps
+- **Visit:** visitId, childId, date, type (SCREENING/TREATMENT/FOLLOWUP), painFlag, swellingFlag, decayedTeeth, missingTeeth, filledTeeth, treatmentTypes[], notes
+- **ClinicDay:** clinicDayId, date, school, capacity, amCapacity, pmCapacity, notes, createdBy
+- **Appointment:** appointmentId, childId, clinicDayId, timeWindow, slotNumber, reason, status, priorityTier, urgencyScore, createdBy
 
-#### Option 1: MongoDB Atlas (Recommended - Free Cloud Database)
+## Graph logic
 
-1. **Sign up** at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register)
-2. **Create a cluster**:
-   - Choose **FREE (M0)** tier
-   - Select **Cloud** deployment
-   - Choose region closest to you
-   - Click "Create Cluster"
-3. **Create database user**:
-   - Security → Database Access → Add New Database User
-   - Set username and password (save these!)
-   - Set privileges to "Atlas admin"
-4. **Configure network access**:
-   - Security → Network Access → Add IP Address
-   - For development: "Allow Access from Anywhere" (0.0.0.0/0)
-5. **Get connection string**:
-   - Database → Connect → Connect your application
-   - Copy connection string
-   - Format: `mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/toothaid?retryWrites=true&w=majority`
-   - Replace `<username>` and `<password>` with your credentials
-   - Add `/toothaid` before the `?` for database name
+- **DMFT** = decayedTeeth + missingTeeth + filledTeeth
+- **Time bucketing:** `timeBuckets.js` supports 1M (monthly), 3M (quarterly), 6M (half-year); rolling “latest visit per child” per bucket
+- **Averages:** One observation per child per bucket (latest visit in that bucket); averages and percentages computed from those
+- **Treatments:** Count each treatment occurrence; visits with multiple types count in each type
 
-#### Option 2: Docker (Easiest Local Setup)
+## Offline & sync
 
-```bash
-# From project root
-docker-compose up -d
-```
+- **Reads:** From IndexedDB
+- **Writes:** IndexedDB first, then outbox
+- **Sync:** Manual “Sync Now” or when online; push outbox then pull since last sync
+- **Idempotency:** Server tracks processed opIds
+- **Conflict:** Visits append-only; children last-write-wins
 
-Connection string: `mongodb://localhost:27017/toothaid`
+IndexedDB: `children`, `visits`, `clinicdays`, `appointments`, `outbox`, `meta` (deviceId, lastSyncAt).
 
-#### Option 3: Local Installation
+## API (summary)
 
-**macOS:**
-```bash
-brew tap mongodb/brew
-brew install mongodb-community
-brew services start mongodb-community
-```
+- **Auth:** `POST /auth/login` with `{ "username", "password" }` → JWT
+- **Sync:** `POST /sync/push`, `GET /sync/pull?since=<ISO>&scope=<string>`
 
-**Windows:**
-Download from [mongodb.com](https://www.mongodb.com/try/download/community)
+## Mobile & PWA
 
-**Linux:**
-```bash
-wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
-echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-sudo apt-get update
-sudo apt-get install -y mongodb-org
-sudo systemctl start mongod
-sudo systemctl enable mongod
-```
+- Touch-friendly targets; segmented controls and chips for selections
+- Bottom nav; horizontal swipe on Reports without page scroll
+- Installable PWA; works offline after first load
 
-Connection string: `mongodb://localhost:27017/toothaid`
+## Testing offline
 
-### Installation
+1. Chrome DevTools → Network → Offline
+2. Use app (e.g. add child/visit)
+3. Sync page shows pending ops
+4. Go online → Sync Now to push
 
-1. **Clone or navigate to the project:**
-```bash
-cd /path/to/toothaid
-```
+## Production
 
-2. **Backend Setup:**
-```bash
-cd server
-npm install
-```
+- **Backend:** `NODE_ENV=production`, strong `JWT_SECRET`, MongoDB URI, PM2 or similar
+- **Frontend:** `npm run build` in `client`, serve `dist/`, HTTPS for PWA
+- **Proxy:** Point client API proxy (or production API base URL) to your backend (e.g. Render or your server)
 
-3. **Create `.env` file:**
-```bash
-# Create .env file in server directory
-cat > .env << EOF
-PORT=3001
-MONGODB_URI=mongodb://localhost:27017/toothaid
-# Or for Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/toothaid?retryWrites=true&w=majority
-JWT_SECRET=your-secret-key-change-in-production
-NODE_ENV=development
-EOF
-```
+## Environment
 
-4. **Seed database (optional):**
-```bash
-npm run seed
-# Creates demo user: username="demo", password="demo"
-```
+**Backend (.env):**
+- `PORT` (default 3001)
+- `MONGODB_URI`
+- `JWT_SECRET`
+- `NODE_ENV`
 
-5. **Start backend server:**
-```bash
-npm start
-# Server runs on http://localhost:3001
-```
-
-6. **Frontend Setup (in a new terminal):**
-```bash
-cd client
-npm install
-npm run dev
-# App runs on http://localhost:3000
-```
-
-## 📊 Data Models
-
-### Child
-- `childId` (UUID, unique)
-- `fullName`
-- `dob` OR `age`
-- `sex` (M/F/Other)
-- `school`
-- `grade`
-- `barangay`
-- `guardianPhone` (optional)
-- `createdAt`, `updatedAt`
-
-### Visit
-- `visitId` (UUID, unique)
-- `childId`
-- `date`
-- `type` (SCREENING/TREATMENT/FOLLOWUP)
-- `painFlag`, `swellingFlag` (boolean)
-- `decayedTeeth`, `missingTeeth`, `filledTeeth` (optional integers)
-- `treatmentTypes[]` (array: Filling, Extraction, Fluoride, Sealant, SDF, Cleaning, Other)
-- `notes` (optional)
-- `createdAt`
-
-### ClinicDay
-- `clinicDayId` (UUID, unique)
-- `date` (Date)
-- `school` (String)
-- `capacity` (Number, minimum 1)
-- `amCapacity` (Number, optional)
-- `pmCapacity` (Number, optional)
-- `notes` (String, optional)
-- `createdBy` (String)
-- `createdAt` (Date)
-
-### Appointment
-- `appointmentId` (UUID, unique)
-- `childId` (UUID, references Child)
-- `clinicDayId` (UUID, references ClinicDay)
-- `timeWindow` (AM/PM/FULL)
-- `slotNumber` (Number, optional)
-- `reason` (EMERGENCY/HIGH_PRIORITY/FOLLOW_UP/ROUTINE)
-- `status` (SCHEDULED/ATTENDED/MISSED/RESCHEDULED/CANCELLED)
-- `priorityTier` (Number, optional)
-- `urgencyScore` (Number, optional)
-- `createdBy` (String)
-- `createdAt` (Date)
-
-## 📈 Graph Logic
-
-### DMFT Calculations
-
-**DMFT** = `decayedTeeth + missingTeeth + filledTeeth`
-
-### Average DMFT Over Time
-- Groups visits by month
-- For each month, selects most recent visit per child
-- Calculates average DMFT across unique children
-- Each child contributes one observation per month
-
-### Average DMFT by School (Top 10)
-- Uses overall latest visit per child (across all time)
-- Groups children by school
-- Calculates average DMFT per school = sum(DMFT) / count(children)
-- Each child contributes one observation
-- Shows top 10 schools sorted by highest average
-
-### Treatment Charts
-- **Counts each treatment occurrence** (double counting allowed)
-- If a visit has `['Filling', 'Fluoride']`, counts as 2 treatments
-- Only includes visits with `treatmentTypes.length > 0` (excludes screening-only visits)
-- Filters out months/schools with zero treatments
-
-## 🔄 Offline-First Architecture
-
-### Data Flow
-1. **All reads** come from IndexedDB (works offline)
-2. **All writes** go to IndexedDB first, then enqueue to outbox
-3. **Sync** happens when:
-   - User manually triggers sync
-   - App detects online status and auto-syncs (on write)
-
-### Sync Mechanism
-- **Outbox Pattern**: All offline operations stored in IndexedDB outbox table
-- **Idempotency**: Server tracks processed `opId`s to prevent duplicates
-- **Incremental Pull**: Only fetches records updated since last sync
-- **Conflict Resolution**: 
-  - Visits: Append-only (no conflicts)
-  - Children: Last-write-wins
-
-### IndexedDB Schema
-- `children`: All child records
-- `visits`: All visit records
-- `clinicdays`: All clinic day records
-- `appointments`: All appointment records
-- `outbox`: Pending operations to sync
-- `meta`: Metadata (deviceId, lastSyncAt)
-
-## 🔌 API Endpoints
-
-### Authentication
-- `POST /auth/login` - Login and get JWT token
-  ```json
-  {
-    "username": "demo",
-    "password": "demo"
-  }
-  ```
-
-### Sync
-- `POST /sync/push` - Push local operations to server
-- `GET /sync/pull?since=<ISO>&scope=<string>` - Pull updates from server
-  - `since`: ISO timestamp for incremental sync
-  - `scope`: Filter by school or barangay (format: `school:SchoolName` or `barangay:BarangayName`)
-
-## 📱 Mobile Usage
-
-The app is optimized for mobile devices:
-- Large touch targets (min 48px height)
-- Bottom navigation bar with swipe support
-- Responsive design
-- **PWA installable** on home screen with custom ToothAid icon
-- **Beautiful page headers** with gradient backgrounds and decorative icons
-- Works offline after first load
-- Swipe navigation in Graphs page
-
-## 🧪 Testing Offline Mode
-
-### Chrome DevTools Method
-1. Open app in Chrome
-2. Open DevTools (F12)
-3. Network tab → Select "Offline"
-4. App shows "Offline Mode" banner
-5. Create child or visit - works offline
-6. Check Sync page - see pending operations
-7. Switch back to "Online"
-8. Click "Sync Now" - operations sync to server
-
-### Verify Data in MongoDB
-
-**MongoDB Atlas Web Interface:**
-1. Log into [MongoDB Atlas](https://cloud.mongodb.com/)
-2. Browse Collections → Select `toothaid` database
-3. View collections: `children`, `visits`, `clinicdays`, `appointments`, `processedops`, `users`
-
-**MongoDB Compass:**
-1. Download [MongoDB Compass](https://www.mongodb.com/products/compass)
-2. Connect using connection string
-3. Browse collections in GUI
-
-**Command Line:**
-```bash
-mongosh "mongodb://localhost:27017/toothaid"
-# Or for Atlas:
-mongosh "mongodb+srv://username:password@cluster.mongodb.net/toothaid"
-
-use toothaid
-db.children.find().pretty()
-db.visits.find().pretty()
-db.clinicdays.find().pretty()
-db.appointments.find().pretty()
-db.children.countDocuments()
-db.visits.countDocuments()
-db.clinicdays.countDocuments()
-db.appointments.countDocuments()
-```
-
-**View Data Script:**
-```bash
-cd server
-npm run view-data
-```
-
-## 🚀 Production Deployment
-
-### Backend
-1. Set `NODE_ENV=production`
-2. Use strong `JWT_SECRET`
-3. Configure MongoDB connection string
-4. Use process manager (PM2, systemd, etc.)
-5. Set up reverse proxy (nginx) if needed
-
-### Frontend
-1. Build: `cd client && npm run build`
-2. Serve `dist/` directory
-3. Ensure HTTPS for PWA features
-4. Configure API proxy or CORS
-
-## 📝 Environment Variables
-
-### Backend (.env)
-- `PORT`: Server port (default: 3001)
-- `MONGODB_URI`: MongoDB connection string
-- `JWT_SECRET`: Secret key for JWT tokens (change in production!)
-- `NODE_ENV`: Environment (development/production)
+**Client:** API base URL / proxy target in `client/vite.config.js` (dev) or `client/src/config.js` as needed for production.
