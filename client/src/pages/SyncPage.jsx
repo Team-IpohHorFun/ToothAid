@@ -84,7 +84,7 @@ const SyncPage = ({ token, setToken }) => {
   };
 
   return (
-    <div className="container">
+    <div className="container" style={{ overflowX: 'hidden' }}>
       <PageHeader title="Sync" subtitle="Synchronize data with server" icon="sync" />
 
       {/* Main Card */}

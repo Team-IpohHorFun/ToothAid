@@ -35,11 +35,13 @@ export default function MainLayout() {
     const handleTouchMove = (e) => {
       const dx = Math.abs(e.touches[0].clientX - touchStartX.current);
       const dy = Math.abs(e.touches[0].clientY - touchStartY.current);
-      if (swipeDirection.current === null && (dx > 8 || dy > 8)) {
+      // Lock direction very early (5px) so we preventDefault before the page can shift
+      if (swipeDirection.current === null && (dx > 5 || dy > 5)) {
         swipeDirection.current = dx > dy ? 'horizontal' : 'vertical';
       }
       if (swipeDirection.current === 'horizontal') {
         e.preventDefault();
+        e.stopPropagation();
       }
     };
 
@@ -58,14 +60,15 @@ export default function MainLayout() {
       swipeDirection.current = null;
     };
 
-    el.addEventListener('touchstart', handleTouchStart, { passive: true });
-    el.addEventListener('touchmove', handleTouchMove, { passive: false });
-    el.addEventListener('touchend', handleTouchEnd, { passive: true });
+    // Use capture: true so we run before children and can prevent horizontal drag
+    el.addEventListener('touchstart', handleTouchStart, { passive: true, capture: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+    el.addEventListener('touchend', handleTouchEnd, { passive: true, capture: true });
 
     return () => {
-      el.removeEventListener('touchstart', handleTouchStart);
-      el.removeEventListener('touchmove', handleTouchMove);
-      el.removeEventListener('touchend', handleTouchEnd);
+      el.removeEventListener('touchstart', handleTouchStart, { capture: true });
+      el.removeEventListener('touchmove', handleTouchMove, { capture: true });
+      el.removeEventListener('touchend', handleTouchEnd, { capture: true });
     };
   }, [location.pathname, navigate]);
 
@@ -73,7 +76,7 @@ export default function MainLayout() {
     <div
       ref={wrapperRef}
       className="main-layout-swipe"
-      style={{ touchAction: 'pan-y pinch-zoom', minHeight: '100%' }}
+      style={{ touchAction: 'pan-y pinch-zoom' }}
     >
       <Outlet />
     </div>

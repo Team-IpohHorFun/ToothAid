@@ -51,7 +51,7 @@ const ClinicDaysList = () => {
 
   if (loading) {
     return (
-      <div className="container">
+      <div className="container" style={{ overflowX: 'hidden' }}>
         <div className="loading">Loading...</div>
         <NavBar />
       </div>
@@ -59,7 +59,7 @@ const ClinicDaysList = () => {
   }
 
   return (
-    <div className="container">
+    <div className="container" style={{ overflowX: 'hidden' }}>
 <PageHeader title="Clinic Days" subtitle="Manage scheduled clinic days" icon="clinic" />
 
       <Link to="/create-clinic-day" className="btn btn-primary" style={{ marginBottom: '16px', display: 'block', textAlign: 'center' }}>
