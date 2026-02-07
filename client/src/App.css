@@ -64,7 +64,7 @@ svg * {
 
   --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.08);
   --shadow-nav: 0 -2px 10px rgba(0, 0, 0, 0.06);
-  --nav-height: 56px;
+  --nav-height: 64px;
 
   --radius-card: 12px;
   --radius-btn: 12px;

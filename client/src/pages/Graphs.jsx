@@ -652,16 +652,20 @@ const Graphs = () => {
   };
 
   // Uniform x-axis ticks: show evenly spaced labels so we never skip inconsistently (e.g. Q2, Q4, Q2, Q4)
+  // X-axis ticks at a fixed step (e.g. every 2nd or 4th point) so intervals are uniform
   const getUniformXTicks = (data, maxTicks = 8) => {
     if (!data?.length) return undefined;
     const n = data.length;
     if (n <= maxTicks) return data.map((d) => d.label);
-    const step = (n - 1) / (maxTicks - 1);
+    const step = Math.max(1, Math.ceil(n / maxTicks));
     const indices = [];
-    for (let i = 0; i < maxTicks; i++) {
-      indices.push(Math.round(i * step));
+    for (let i = 0; i < n; i += step) {
+      indices.push(i);
     }
-    return [...new Set(indices)].sort((a, b) => a - b).map((i) => data[i].label);
+    if (indices[indices.length - 1] !== n - 1) {
+      indices.push(n - 1);
+    }
+    return indices.map((i) => data[i].label);
   };
 
   // Granularity selector component for line charts

@@ -486,11 +486,11 @@ const ChildProfile = ({ token }) => {
           padding: '20px'
         }}>
           <div className="card" style={{ maxWidth: '400px', width: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: '16px' }}>Delete Child?</h3>
-            <p style={{ marginBottom: '8px' }}>
+            <h3 style={{ color: 'var(--color-accent)', marginBottom: '16px', fontSize: '18px' }}>Delete Child?</h3>
+            <p style={{ marginBottom: '8px', fontSize: '16px' }}>
               Are you sure you want to delete <strong>{child.fullName}</strong>?
             </p>
-            <p style={{ marginBottom: '16px', color: 'var(--color-accent)', fontSize: '14px' }}>
+            <p style={{ marginBottom: '16px', color: 'var(--color-accent)', fontSize: '16px' }}>
               This will also delete all {visits.length} visit record(s) for this child. This action cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -500,6 +500,7 @@ const ChildProfile = ({ token }) => {
                 style={{ 
                   flex: 1,
                   padding: '12px',
+                  fontSize: '16px',
                   background: 'var(--color-accent)',
                   color: 'white',
                   border: 'none',
@@ -513,7 +514,7 @@ const ChildProfile = ({ token }) => {
               <button 
                 onClick={() => setShowDeleteChildConfirm(false)}
                 className="btn btn-secondary"
-                style={{ flex: 1 }}
+                style={{ flex: 1, fontSize: '16px' }}
               >
                 Cancel
               </button>
@@ -774,8 +775,8 @@ const ChildProfile = ({ token }) => {
           padding: '20px'
         }}>
           <div className="card" style={{ maxWidth: '400px', width: '100%' }}>
-            <h3 style={{ color: 'var(--color-accent)', marginBottom: '16px' }}>Delete Visit?</h3>
-            <p style={{ marginBottom: '16px' }}>
+            <h3 style={{ color: 'var(--color-accent)', marginBottom: '16px', fontSize: '18px' }}>Delete Visit?</h3>
+            <p style={{ marginBottom: '16px', fontSize: '16px' }}>
               Are you sure you want to delete this visit record? This action cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -785,6 +786,7 @@ const ChildProfile = ({ token }) => {
                 style={{ 
                   flex: 1,
                   padding: '12px',
+                  fontSize: '16px',
                   background: 'var(--color-accent)',
                   color: 'white',
                   border: 'none',
@@ -798,7 +800,7 @@ const ChildProfile = ({ token }) => {
               <button 
                 onClick={() => setDeleteVisitId(null)}
                 className="btn btn-secondary"
-                style={{ flex: 1 }}
+                style={{ flex: 1, fontSize: '16px' }}
               >
                 Cancel
               </button>

@@ -4,7 +4,12 @@ const NavBar = () => {
   const location = useLocation();
 
   const isActive = (path) => {
-    if (path === '/' && location.pathname === '/') return true;
+    if (path === '/') {
+      return location.pathname === '/' || location.pathname === '/high-risk';
+    }
+    if (path === '/search') {
+      return location.pathname === '/search' || location.pathname.startsWith('/child');
+    }
     if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;
   };
