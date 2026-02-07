@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import MainLayout from './components/MainLayout';
 import Login from './pages/Login';
 import Home from './pages/Home';
 import SearchChild from './pages/SearchChild';
@@ -144,58 +145,62 @@ function App() {
         )}
 
         <Routes>
-          <Route 
-            path="/login" 
-            element={<Login setToken={setToken} />} 
+          <Route
+            path="/login"
+            element={<Login setToken={setToken} />}
           />
-          <Route 
-            path="/" 
-            element={token ? <Home setToken={setToken} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/search" 
-            element={token ? <SearchChild token={token} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/register" 
-            element={token ? <RegisterChild token={token} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/child/:childId" 
-            element={token ? <ChildProfile token={token} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/child/:childId/visit" 
-            element={token ? <AddVisit token={token} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/high-risk" 
-            element={token ? <HighRiskList /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/graphs" 
-            element={token ? <Graphs /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/clinic-days" 
-            element={token ? <ClinicDaysList /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/create-clinic-day" 
-            element={token ? <CreateClinicDay token={token} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/clinic-days/:clinicDayId/build-roster" 
-            element={token ? <BuildRoster token={token} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/clinic-days/:clinicDayId/roster" 
-            element={token ? <ClinicDayRoster token={token} /> : <Navigate to="/login" />} 
-          />
-          <Route 
-            path="/sync" 
-            element={token ? <SyncPage token={token} setToken={setToken} /> : <Navigate to="/login" />} 
-          />
+          <Route
+            element={token ? <MainLayout /> : <Navigate to="/login" />}
+          >
+            <Route
+              path="/"
+              element={<Home setToken={setToken} />}
+            />
+            <Route
+              path="/search"
+              element={<SearchChild token={token} />}
+            />
+            <Route
+              path="/register"
+              element={<RegisterChild token={token} />}
+            />
+            <Route
+              path="/child/:childId"
+              element={<ChildProfile token={token} />}
+            />
+            <Route
+              path="/child/:childId/visit"
+              element={<AddVisit token={token} />}
+            />
+            <Route
+              path="/high-risk"
+              element={<HighRiskList />}
+            />
+            <Route
+              path="/graphs"
+              element={<Graphs />}
+            />
+            <Route
+              path="/clinic-days"
+              element={<ClinicDaysList />}
+            />
+            <Route
+              path="/create-clinic-day"
+              element={<CreateClinicDay token={token} />}
+            />
+            <Route
+              path="/clinic-days/:clinicDayId/build-roster"
+              element={<BuildRoster token={token} />}
+            />
+            <Route
+              path="/clinic-days/:clinicDayId/roster"
+              element={<ClinicDayRoster token={token} />}
+            />
+            <Route
+              path="/sync"
+              element={<SyncPage token={token} setToken={setToken} />}
+            />
+          </Route>
         </Routes>
       </div>
     </BrowserRouter>

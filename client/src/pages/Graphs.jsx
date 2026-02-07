@@ -651,6 +651,19 @@ const Graphs = () => {
     setActivePoint(null);
   };
 
+  // Uniform x-axis ticks: show evenly spaced labels so we never skip inconsistently (e.g. Q2, Q4, Q2, Q4)
+  const getUniformXTicks = (data, maxTicks = 8) => {
+    if (!data?.length) return undefined;
+    const n = data.length;
+    if (n <= maxTicks) return data.map((d) => d.label);
+    const step = (n - 1) / (maxTicks - 1);
+    const indices = [];
+    for (let i = 0; i < maxTicks; i++) {
+      indices.push(Math.round(i * step));
+    }
+    return [...new Set(indices)].sort((a, b) => a - b).map((i) => data[i].label);
+  };
+
   // Granularity selector component for line charts
   const GranularitySelector = () => (
     <div style={{
@@ -712,7 +725,7 @@ const Graphs = () => {
               <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
                 <LineChart data={chartData.avgDecayedTeeth} margin={{ top: 10, right: 10, bottom: 5, left: -20 }} style={{ outline: 'none' }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="label" ticks={getUniformXTicks(chartData.avgDecayedTeeth)} tick={{ fontSize: 11 }} />
                   <YAxis />
                   <Line 
                     type="monotone" 
@@ -742,7 +755,7 @@ const Graphs = () => {
               <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
                 <LineChart data={chartData.pctWithDecay} margin={{ top: 10, right: 10, bottom: 5, left: -20 }} style={{ outline: 'none' }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="label" ticks={getUniformXTicks(chartData.pctWithDecay)} tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} />
                   <Line 
                     type="monotone" 
@@ -772,7 +785,7 @@ const Graphs = () => {
               <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
                 <LineChart data={chartData.fDmftRatio} margin={{ top: 10, right: 10, bottom: 5, left: -20 }} style={{ outline: 'none' }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="label" ticks={getUniformXTicks(chartData.fDmftRatio)} tick={{ fontSize: 11 }} />
                   <YAxis domain={[0, 100]} />
                   <Line 
                     type="monotone" 
@@ -1108,7 +1121,7 @@ const Graphs = () => {
               <ResponsiveContainer width="100%" height={320} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
                 <LineChart data={chartData.avgDmftOverTime} margin={{ top: 10, right: 10, bottom: 5, left: -20 }} style={{ outline: 'none' }}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <XAxis dataKey="label" ticks={getUniformXTicks(chartData.avgDmftOverTime)} tick={{ fontSize: 11 }} />
                   <YAxis />
                   <Line 
                     type="monotone" 
