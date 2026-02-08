@@ -565,25 +565,57 @@ const ChildProfile = ({ token }) => {
 
                     <div className="form-group">
                       <label>Flags</label>
-                      <div className="checkbox-group">
-                        <input
-                          type="checkbox"
-                          id={`painFlag-${visit.visitId}`}
-                          name="painFlag"
-                          checked={visitFormData.painFlag}
-                          onChange={handleVisitFormChange}
-                        />
-                        <label htmlFor={`painFlag-${visit.visitId}`}>Pain</label>
-                      </div>
-                      <div className="checkbox-group">
-                        <input
-                          type="checkbox"
-                          id={`swellingFlag-${visit.visitId}`}
-                          name="swellingFlag"
-                          checked={visitFormData.swellingFlag}
-                          onChange={handleVisitFormChange}
-                        />
-                        <label htmlFor={`swellingFlag-${visit.visitId}`}>Swelling</label>
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => setVisitFormData(prev => ({ ...prev, painFlag: !prev.painFlag }))}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '12px 18px',
+                            borderRadius: '12px',
+                            border: visitFormData.painFlag ? '2px solid var(--color-primary)' : '2px solid #e5e5ea',
+                            background: visitFormData.painFlag ? 'var(--color-primary-soft)' : '#f2f2f7',
+                            color: visitFormData.painFlag ? 'var(--color-primary)' : '#1c1c1e',
+                            fontSize: '15px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {visitFormData.painFlag && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '16px', height: '16px' }}>
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          )}
+                          Pain
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setVisitFormData(prev => ({ ...prev, swellingFlag: !prev.swellingFlag }))}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '12px 18px',
+                            borderRadius: '12px',
+                            border: visitFormData.swellingFlag ? '2px solid var(--color-primary)' : '2px solid #e5e5ea',
+                            background: visitFormData.swellingFlag ? 'var(--color-primary-soft)' : '#f2f2f7',
+                            color: visitFormData.swellingFlag ? 'var(--color-primary)' : '#1c1c1e',
+                            fontSize: '15px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          {visitFormData.swellingFlag && (
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '16px', height: '16px' }}>
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          )}
+                          Swelling
+                        </button>
                       </div>
                     </div>
 
@@ -622,20 +654,45 @@ const ChildProfile = ({ token }) => {
 
                     <div className="form-group">
                       <label>Treatment Types</label>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                        {treatmentOptions.map(option => (
-                          <div key={option} className="checkbox-group" style={{ marginRight: '8px' }}>
-                            <input
-                              type="checkbox"
-                              id={`treatment-${option}-${visit.visitId}`}
-                              name="treatmentTypes"
-                              value={option}
-                              checked={visitFormData.treatmentTypes.includes(option)}
-                              onChange={handleVisitFormChange}
-                            />
-                            <label htmlFor={`treatment-${option}-${visit.visitId}`}>{option}</label>
-                          </div>
-                        ))}
+                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        {treatmentOptions.map(option => {
+                          const isSelected = visitFormData.treatmentTypes.includes(option);
+                          return (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() => {
+                                setVisitFormData(prev => ({
+                                  ...prev,
+                                  treatmentTypes: isSelected
+                                    ? prev.treatmentTypes.filter(t => t !== option)
+                                    : [...prev.treatmentTypes, option]
+                                }));
+                              }}
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                padding: '12px 18px',
+                                borderRadius: '12px',
+                                border: isSelected ? '2px solid var(--color-primary)' : '2px solid #e5e5ea',
+                                background: isSelected ? 'var(--color-primary-soft)' : '#f2f2f7',
+                                color: isSelected ? 'var(--color-primary)' : '#1c1c1e',
+                                fontSize: '15px',
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {isSelected && (
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '16px', height: '16px' }}>
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                              {option}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
