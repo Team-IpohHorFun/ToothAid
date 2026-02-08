@@ -31,9 +31,21 @@ const Login = ({ setToken }) => {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Login error response:', response.status, errorText);
-        throw new Error(`Server error: ${response.status} ${response.statusText}. URL: ${fullUrl}`);
+        const contentType = response.headers.get('content-type');
+        let errorMessage = '';
+        if (contentType && contentType.includes('application/json')) {
+          const errBody = await response.json();
+          errorMessage = errBody.error || response.statusText;
+        } else {
+          errorMessage = await response.text() || response.statusText;
+        }
+        console.error('Login error response:', response.status, errorMessage);
+        if (response.status === 401 || (errorMessage && errorMessage.toLowerCase().includes('invalid credentials'))) {
+          setError('Incorrect username or password.');
+          setLoading(false);
+          return;
+        }
+        throw new Error(errorMessage || `Server error: ${response.status}`);
       }
 
       let data;

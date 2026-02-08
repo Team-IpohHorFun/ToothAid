@@ -1,6 +1,6 @@
 /**
  * Time Bucketing Utility for ToothAid Charts
- * 
+ *
  * Supports three granularities:
  * - 1M (Monthly): YYYY-MM
  * - 3M (Quarterly): YYYY-Qn (Q1=Jan-Mar, Q2=Apr-Jun, Q3=Jul-Sep, Q4=Oct-Dec)
@@ -64,7 +64,7 @@ export const bucketKeyToSortValue = (bucketKey) => {
  * @returns {string[]} Sorted bucket keys
  */
 export const sortBucketKeys = (bucketKeys) => {
-  return [...bucketKeys].sort((a, b) => bucketKeyToSortValue(a) - bucketKeyToSortValue(b));
+  return bucketKeys.slice().sort((a, b) => bucketKeyToSortValue(a) - bucketKeyToSortValue(b));
 };
 
 /**
@@ -162,12 +162,12 @@ export const getLastNBuckets = (bucketedData, maxBuckets = 12) => {
  */
 export const getAllBucketsInRange = (startKey, endKey, granularity) => {
   const buckets = [];
-  
+
   if (granularity === '1M') {
     // Monthly: YYYY-MM
     const [startYear, startMonth] = startKey.split('-').map(Number);
     const [endYear, endMonth] = endKey.split('-').map(Number);
-    
+
     let y = startYear, m = startMonth;
     while (y < endYear || (y === endYear && m <= endMonth)) {
       buckets.push(`${y}-${String(m).padStart(2, '0')}`);
@@ -180,7 +180,7 @@ export const getAllBucketsInRange = (startKey, endKey, granularity) => {
     const startQ = parseInt(startKey.split('-Q')[1], 10);
     const endYear = parseInt(endKey.split('-')[0], 10);
     const endQ = parseInt(endKey.split('-Q')[1], 10);
-    
+
     let y = startYear, q = startQ;
     while (y < endYear || (y === endYear && q <= endQ)) {
       buckets.push(`${y}-Q${q}`);
@@ -193,7 +193,7 @@ export const getAllBucketsInRange = (startKey, endKey, granularity) => {
     const startH = parseInt(startKey.split('-H')[1], 10);
     const endYear = parseInt(endKey.split('-')[0], 10);
     const endH = parseInt(endKey.split('-H')[1], 10);
-    
+
     let y = startYear, h = startH;
     while (y < endYear || (y === endYear && h <= endH)) {
       buckets.push(`${y}-H${h}`);
@@ -201,7 +201,7 @@ export const getAllBucketsInRange = (startKey, endKey, granularity) => {
       if (h > 2) { h = 1; y++; }
     }
   }
-  
+
   return buckets;
 };
 
@@ -215,14 +215,14 @@ export const getAllBucketsInRange = (startKey, endKey, granularity) => {
 export const getLastNBucketsWithEqualIntervals = (bucketedData, granularity, maxBuckets = 12) => {
   const existingKeys = Object.keys(bucketedData);
   if (existingKeys.length === 0) return [];
-  
+
   const sortedKeys = sortBucketKeys(existingKeys);
   const firstKey = sortedKeys[0];
   const lastKey = sortedKeys[sortedKeys.length - 1];
-  
+
   // Generate all buckets in range
   const allBuckets = getAllBucketsInRange(firstKey, lastKey, granularity);
-  
+
   // Take the last N buckets
   return allBuckets.slice(-maxBuckets);
 };
@@ -238,11 +238,11 @@ export const getLastNBucketsWithEqualIntervals = (bucketedData, granularity, max
 export const getCumulativeLatestVisits = (visits, bucketKeys, granularity) => {
   // Sort visits by date ascending
   const sortedVisits = [...visits].sort((a, b) => new Date(a.date) - new Date(b.date));
-  
+
   // Track latest visit per child as we progress through time
   const latestByChild = {};
   const result = {};
-  
+
   // Create a map of bucket -> visits in that bucket
   const visitsByBucket = {};
   sortedVisits.forEach(visit => {
@@ -252,7 +252,7 @@ export const getCumulativeLatestVisits = (visits, bucketKeys, granularity) => {
     }
     visitsByBucket[bucketKey].push(visit);
   });
-  
+
   // Process each bucket in chronological order
   bucketKeys.forEach(bucketKey => {
     // Update latestByChild with visits from this bucket
@@ -266,11 +266,11 @@ export const getCumulativeLatestVisits = (visits, bucketKeys, granularity) => {
         latestByChild[childId] = visit;
       }
     });
-    
+
     // Snapshot current state - all children's latest known visits up to this bucket
     result[bucketKey] = Object.values(latestByChild);
   });
-  
+
   return result;
 };
 
