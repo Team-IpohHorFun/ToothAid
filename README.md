@@ -41,7 +41,7 @@ Charts use **rolling latest-visit-per-child** per time bucket (no gaps for missi
 - **Bottom nav** – Today, Children, Visit, Clinic, Reports, Sync; active state uses teal, no background fill
 - **Forms & inputs** – Light gray fields, teal focus ring, uppercase labels
 - **Search bars** – Rounded, light gray, inline search icon
-- **PWA** – Installable; custom tooth icon and manifest
+- **PWA** – Installable; custom tooth icon and manifest (`public/tooth-icon.svg`, `public/manifest.json`)
 
 ### Screens
 - **Login** – Auth with demo mode
@@ -70,23 +70,25 @@ ToothAid/
 │   ├── models/          # Child, Visit, ClinicDay, Appointment, ProcessedOp, User
 │   ├── routes/          # auth.js, sync.js
 │   ├── middleware/      # auth.js (JWT)
-│   ├── scripts/         # seed.js, view-data.js, migrate-visits.js
+│   ├── scripts/         # seed.js, view-data.js, migrate-visits.js, import-csv.js
+│   ├── data/            # optional data dir (.gitkeep)
 │   ├── db.js
 │   ├── server.js
 │   └── package.json
 ├── client/
 │   ├── src/
-│   │   ├── components/  # NavBar, PageHeader, DateInput
+│   │   ├── components/  # NavBar, PageHeader, DateInput, MainLayout
 │   │   ├── db/          # indexedDB.js
 │   │   ├── pages/       # Login, Home, SearchChild, RegisterChild, ChildProfile, etc.
 │   │   ├── utils/       # timeBuckets.js (chart bucketing)
 │   │   ├── config.js
 │   │   ├── App.jsx, App.css, fonts.css, main.jsx
 │   ├── public/          # tooth-icon.svg, manifest.json
-│   ├── vite.config.js   # dev server, API proxy, PWA
+│   ├── vite.config.js   # dev server (port 3000), API proxy, PWA
 │   ├── index.html
 │   └── package.json
 ├── docker-compose.yml   # MongoDB
+├── DELETION_CHECKLIST.md  # log of removed unused files
 └── README.md
 ```
 
@@ -123,14 +125,15 @@ ToothAid/
    npm run seed   # optional: demo user demo/demo
    npm start      # http://localhost:3001
    ```
+   **Other scripts:** `npm run view-data` (inspect DB), `npm run migrate-visits`, `npm run import-csv -- <children.csv> <visits.csv>` (bulk import).
 
 2. **Frontend** (new terminal)
    ```bash
    cd client
    npm install
-   npm run dev    # http://localhost:5173 or :3000
+   npm run dev    # http://localhost:3000 (see vite.config.js server.port)
    ```
-   The Vite dev server proxies `/api` to the backend. Default in `vite.config.js` is the Render backend; for local backend, set proxy target to `http://localhost:3001`.
+   The Vite dev server proxies `/api` to the backend. In `vite.config.js`, set the proxy target to `http://localhost:3001` for a local backend (default may point to a remote Render URL).
 
 ### Demo login
 - Username: `demo`  
@@ -192,4 +195,4 @@ IndexedDB: `children`, `visits`, `clinicdays`, `appointments`, `outbox`, `meta` 
 - `JWT_SECRET`
 - `NODE_ENV`
 
-**Client:** API base URL / proxy target in `client/vite.config.js` (dev) or `client/src/config.js` as needed for production.
+**Client:** API base URL and path in `client/src/config.js`; dev proxy in `client/vite.config.js` (e.g. `/api` → backend). For production, build with `npm run build` and serve `client/dist/`.
