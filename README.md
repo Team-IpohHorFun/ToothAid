@@ -40,15 +40,16 @@ Charts use **rolling latest-visit-per-child** per time bucket (no gaps for missi
 - **Page headers** – Outline-style icons aligned with bottom nav
 - **Bottom nav** – Today, Children, Visit, Clinic, Reports, Sync; active state uses teal, no background fill
 - **Forms & inputs** – Light gray fields, teal focus ring, uppercase labels
+- **Visit forms** – Flags (Pain, Swelling) and Treatment Types (Cleaning, Fluoride, etc.) use chip-style toggle buttons with teal styling and checkmarks; same UI for Add Visit (from Visit tab or Child profile) and when editing a visit in a child’s history
 - **Search bars** – Rounded, light gray, inline search icon
 - **PWA** – Installable; custom tooth icon and manifest (`public/tooth-icon.svg`, `public/manifest.json`)
 
 ### Screens
 - **Login** – Auth with demo mode
 - **Home** – Dashboard, High-Risk Cases, Today’s Clinic, Quick Actions (Add Visit, Find Child, New Child), pending sync alert, Logout
-- **Children** – Search/browse
-- **Add Visit** – Record visit; select child then add visit (Flags and Treatment Types as chips)
-- **Child profile** – Details and visit timeline
+- **Children** – Search/browse; tap a child for profile, then “Add Visit” for the same visit form as the Visit tab
+- **Visit** – Select child (search by name, school, or barangay), then add visit with chip-style Flags and Treatment Types
+- **Child profile** – Details, visit timeline, Add Visit button, and edit existing visits (same chip-style form)
 - **High-Risk Cases** – List and management
 - **Clinic Days** – List, Create Clinic Day, Build Roster, Clinic Day Roster
 - **Reports** – Swipeable charts; View: Monthly/Quarterly/Half-year; pie: 6 months/1 year/All
@@ -88,7 +89,6 @@ ToothAid/
 │   ├── index.html
 │   └── package.json
 ├── docker-compose.yml   # MongoDB
-├── DELETION_CHECKLIST.md  # log of removed unused files
 └── README.md
 ```
 
