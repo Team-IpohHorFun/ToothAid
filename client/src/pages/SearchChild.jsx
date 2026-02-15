@@ -4,6 +4,7 @@ import NavBar from '../components/NavBar';
 import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
 import { searchChildren, getAllChildren, upsertChild, addToOutbox, checkDuplicates, performSync } from '../db/indexedDB';
+import { getAgeFromDOB } from '../utils/age';
 
 const SearchChild = ({ token }) => {
   const navigate = useNavigate();
@@ -23,7 +24,8 @@ const SearchChild = ({ token }) => {
     school: '',
     grade: '',
     barangay: '',
-    guardianPhone: ''
+    guardianPhone: '',
+    notes: ''
   });
   const [duplicates, setDuplicates] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -56,14 +58,15 @@ const SearchChild = ({ token }) => {
     }
   }, [query]);
 
-  // Check for duplicates (exact same logic as original RegisterChild)
+  // Check for duplicates; when DOB is set use computed age for matching
   useEffect(() => {
     const checkDups = async () => {
       if (formData.fullName && formData.school && (formData.dob || formData.age)) {
+        const ageFromDob = formData.dob ? getAgeFromDOB(formData.dob) : null;
         const childData = {
           ...formData,
           dob: formData.dob || null,
-          age: formData.age ? parseInt(formData.age) : null
+          age: formData.dob ? ageFromDob : (formData.age ? parseInt(formData.age) : null)
         };
         const dups = await checkDuplicates(childData);
         setDuplicates(dups);
@@ -89,16 +92,18 @@ const SearchChild = ({ token }) => {
       const now = new Date().toISOString();
       const username = localStorage.getItem('username') || 'unknown';
       
+      // When DOB is set, store age as null so age is always computed from DOB (updates over time)
       const childData = {
         childId,
         fullName: formData.fullName.trim(),
         dob: formData.dob || null,
-        age: formData.age ? parseInt(formData.age) : null,
+        age: formData.dob ? null : (formData.age ? parseInt(formData.age) : null),
         sex: formData.sex,
         school: formData.school.trim(),
         grade: formData.grade.trim() || null,
         barangay: formData.barangay.trim(),
         guardianPhone: formData.guardianPhone.trim() || null,
+        notes: formData.notes.trim() || null,
         createdBy: username,
         updatedBy: username,
         createdAt: now,
@@ -143,7 +148,8 @@ const SearchChild = ({ token }) => {
       school: '',
       grade: '',
       barangay: '',
-      guardianPhone: ''
+      guardianPhone: '',
+      notes: ''
     });
     setDuplicates([]);
     setError('');
@@ -217,7 +223,7 @@ const SearchChild = ({ token }) => {
                   <li key={dup.childId}>
                     {dup.fullName} - {dup.school} 
                     {dup.dob && ` (DOB: ${formatDate(dup.dob)})`}
-                    {dup.age && ` (Age: ${dup.age})`}
+                    {(getAgeFromDOB(dup.dob) != null || dup.age != null) && ` (Age: ${getAgeFromDOB(dup.dob) ?? dup.age} years)`}
                   </li>
                 ))}
               </ul>
@@ -250,17 +256,26 @@ const SearchChild = ({ token }) => {
                 />
               </div>
 
-              <div className="form-group">
-                <label>Age (if DOB unknown)</label>
-                <input
-                  type="number"
-                  name="age"
-                  value={formData.age}
-                  onChange={handleChange}
-                  min="0"
-                  max="18"
-                />
-              </div>
+              {formData.dob ? (
+                <div className="form-group">
+                  <label>Age (from date of birth)</label>
+                  <p style={{ margin: 0, color: '#555' }}>
+                    {getAgeFromDOB(formData.dob) != null ? `${getAgeFromDOB(formData.dob)} years` : '—'}
+                  </p>
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label>Age (if DOB unknown)</label>
+                  <input
+                    type="number"
+                    name="age"
+                    value={formData.age}
+                    onChange={handleChange}
+                    min="0"
+                    max="18"
+                  />
+                </div>
+              )}
 
               <div className="form-group">
                 <label>Sex *</label>
@@ -315,6 +330,17 @@ const SearchChild = ({ token }) => {
                   value={formData.guardianPhone}
                   onChange={handleChange}
                   placeholder="09123456789"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Notes (optional)</label>
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  rows="3"
+                  placeholder="Any notes about this child..."
                 />
               </div>
 

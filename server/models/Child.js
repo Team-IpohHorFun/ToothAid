@@ -44,6 +44,11 @@ const childSchema = new mongoose.Schema({
     trim: true,
     default: null
   },
+  notes: {
+    type: String,
+    trim: true,
+    default: null
+  },
   createdBy: {
     type: String,
     required: true,

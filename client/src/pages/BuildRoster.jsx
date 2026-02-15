@@ -14,6 +14,7 @@ import {
   performSync,
   getChild
 } from '../db/indexedDB';
+import { getAgeFromDOB } from '../utils/age';
 
 const BuildRoster = ({ token }) => {
   const { clinicDayId } = useParams();
@@ -28,6 +29,19 @@ const BuildRoster = ({ token }) => {
   const [saving, setSaving] = useState(false);
   const [showTimeWindowModal, setShowTimeWindowModal] = useState(false);
   const [pendingAdd, setPendingAdd] = useState(null); // { childId, reason, tier, urgencyScore }
+  const [viewChildDetail, setViewChildDetail] = useState(null); // { child, visitInfo? } for modal
+
+  // When View child modal opens, refetch child from IndexedDB so notes and other edits are up to date
+  useEffect(() => {
+    if (!viewChildDetail?.child?.childId) return;
+    let cancelled = false;
+    getChild(viewChildDetail.child.childId).then((freshChild) => {
+      if (!cancelled && freshChild) {
+        setViewChildDetail(prev => prev ? { ...prev, child: freshChild } : null);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [viewChildDetail?.child?.childId]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -595,8 +609,8 @@ const BuildRoster = ({ token }) => {
             .slice(0, 20)
             .map(visit => (
               <div key={visit.visitId} className="card" style={{ marginBottom: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{ marginBottom: '4px' }}>{visit.child?.fullName || 'Unknown'}</h3>
                     <p style={{ color: '#666', fontSize: '14px', marginBottom: '4px' }}>
                       {visit.tierName} • Urgency: {visit.urgencyScore}
@@ -604,18 +618,36 @@ const BuildRoster = ({ token }) => {
                     {visit.painFlag && <span className="flag-badge pain" style={{ marginRight: '4px' }}>Pain</span>}
                     {visit.swellingFlag && <span className="flag-badge swelling">Swelling</span>}
                   </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleAddToRoster(
-                      visit.childId, 
-                      visit.tier === 1 ? 'EMERGENCY' : 'HIGH_PRIORITY',
-                      visit.tier,
-                      visit.urgencyScore
-                    )}
-                    disabled={saving || isInRoster(visit.childId) || remaining <= 0}
-                  >
-                    Add
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setViewChildDetail({
+                        child: visit.child,
+                        visitInfo: {
+                          tierName: visit.tierName,
+                          urgencyScore: visit.urgencyScore,
+                          painFlag: visit.painFlag,
+                          swellingFlag: visit.swellingFlag
+                        }
+                      })}
+                      style={{ padding: '8px 14px', fontSize: '14px' }}
+                    >
+                      View
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleAddToRoster(
+                        visit.childId, 
+                        visit.tier === 1 ? 'EMERGENCY' : 'HIGH_PRIORITY',
+                        visit.tier,
+                        visit.urgencyScore
+                      )}
+                      disabled={saving || isInRoster(visit.childId) || remaining <= 0}
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -633,20 +665,30 @@ const BuildRoster = ({ token }) => {
             .slice(0, 50)
             .map(child => (
               <div key={child.childId} className="card" style={{ marginBottom: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                     <h3 style={{ marginBottom: '4px' }}>{child.fullName}</h3>
                     <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
                       {child.school || 'No school'} • {child.grade || 'No grade'} • {child.barangay}
                     </p>
                   </div>
-                  <button
-                    className="btn btn-primary"
-                    onClick={() => handleAddToRoster(child.childId, 'ROUTINE', 3, 0)}
-                    disabled={saving || isInRoster(child.childId) || remaining <= 0}
-                  >
-                    Add
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setViewChildDetail({ child, visitInfo: null })}
+                      style={{ padding: '8px 14px', fontSize: '14px' }}
+                    >
+                      View
+                    </button>
+                    <button
+                      className="btn btn-primary"
+                      onClick={() => handleAddToRoster(child.childId, 'ROUTINE', 3, 0)}
+                      disabled={saving || isInRoster(child.childId) || remaining <= 0}
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -662,6 +704,98 @@ const BuildRoster = ({ token }) => {
           View Roster & Mark Attendance
         </button>
       </div>
+
+      {/* Child Info Modal (view without adding to roster) */}
+      {viewChildDetail && viewChildDetail.child && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+          onClick={() => setViewChildDetail(null)}
+        >
+          <div
+            className="card"
+            style={{
+              maxWidth: '420px',
+              width: '100%',
+              maxHeight: '85vh',
+              overflowY: 'auto',
+              zIndex: 1001
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0 }}>Child Information</h3>
+              <button
+                type="button"
+                onClick={() => setViewChildDetail(null)}
+                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#666', lineHeight: 1 }}
+              >
+                ×
+              </button>
+            </div>
+            {viewChildDetail.visitInfo && (
+              <div style={{ marginBottom: '12px', padding: '10px', background: '#f8f9fa', borderRadius: '8px' }}>
+                <p style={{ margin: 0, fontSize: '14px' }}>
+                  <strong>{viewChildDetail.visitInfo.tierName}</strong>
+                  {viewChildDetail.visitInfo.urgencyScore != null && ` • Urgency: ${viewChildDetail.visitInfo.urgencyScore}`}
+                </p>
+                {(viewChildDetail.visitInfo.painFlag || viewChildDetail.visitInfo.swellingFlag) && (
+                  <div style={{ marginTop: '6px' }}>
+                    {viewChildDetail.visitInfo.painFlag && <span className="flag-badge pain" style={{ marginRight: '6px' }}>Pain</span>}
+                    {viewChildDetail.visitInfo.swellingFlag && <span className="flag-badge swelling">Swelling</span>}
+                  </div>
+                )}
+              </div>
+            )}
+            <p style={{ margin: '4px 0' }}><strong>Name:</strong> {viewChildDetail.child.fullName}</p>
+            <p style={{ margin: '4px 0' }}><strong>Sex:</strong> {viewChildDetail.child.sex}</p>
+            {viewChildDetail.child.dob && <p style={{ margin: '4px 0' }}><strong>Date of Birth:</strong> {formatDate(viewChildDetail.child.dob)}</p>}
+            {(getAgeFromDOB(viewChildDetail.child.dob) != null || viewChildDetail.child.age != null) && (
+              <p style={{ margin: '4px 0' }}><strong>Age:</strong> {getAgeFromDOB(viewChildDetail.child.dob) ?? viewChildDetail.child.age} years</p>
+            )}
+            <p style={{ margin: '4px 0' }}><strong>School:</strong> {viewChildDetail.child.school}</p>
+            {viewChildDetail.child.grade && <p style={{ margin: '4px 0' }}><strong>Grade:</strong> {viewChildDetail.child.grade}</p>}
+            <p style={{ margin: '4px 0' }}><strong>Barangay:</strong> {viewChildDetail.child.barangay}</p>
+            {viewChildDetail.child.guardianPhone && <p style={{ margin: '4px 0' }}><strong>Guardian Phone:</strong> {viewChildDetail.child.guardianPhone}</p>}
+            <p style={{ margin: '4px 0' }}>
+              <strong>Notes:</strong>{' '}
+              <span style={{ whiteSpace: 'pre-wrap', color: '#555' }}>{viewChildDetail.child.notes && viewChildDetail.child.notes.trim() ? viewChildDetail.child.notes : '—'}</span>
+            </p>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setViewChildDetail(null)}
+                style={{ flex: 1 }}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setViewChildDetail(null);
+                  navigate(`/child/${viewChildDetail.child.childId}`);
+                }}
+                style={{ flex: 1 }}
+              >
+                Open Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Time Window Selection Modal */}
       {showTimeWindowModal && pendingAdd && (

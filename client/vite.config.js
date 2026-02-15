@@ -49,8 +49,11 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
+      // In dev, proxy /api to your LOCAL server so edits + sync update your MongoDB.
+      // Server runs on port 3001 by default. To use production backend instead, set:
+      //   VITE_PROXY_TARGET=https://toothaid-backend.onrender.com
       '/api': {
-        target: 'https://toothaid-backend.onrender.com',
+        target: process.env.VITE_PROXY_TARGET || 'http://localhost:3001',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

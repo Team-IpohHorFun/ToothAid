@@ -13,6 +13,7 @@ import {
   addToOutbox, 
   performSync 
 } from '../db/indexedDB';
+import { getAgeFromDOB } from '../utils/age';
 
 const ChildProfile = ({ token }) => {
   const { childId } = useParams();
@@ -86,7 +87,8 @@ const ChildProfile = ({ token }) => {
       school: child.school || '',
       grade: child.grade || '',
       barangay: child.barangay || '',
-      guardianPhone: child.guardianPhone || ''
+      guardianPhone: child.guardianPhone || '',
+      notes: child.notes || ''
     });
     setIsEditingChild(true);
     setError('');
@@ -106,16 +108,18 @@ const ChildProfile = ({ token }) => {
       const username = localStorage.getItem('username') || 'unknown';
       const now = new Date().toISOString();
       
+      // When DOB is set, store age as null so age is always computed from DOB (updates over time)
       const updatedChild = {
         ...child,
         fullName: childFormData.fullName.trim(),
         dob: childFormData.dob || null,
-        age: childFormData.age ? parseInt(childFormData.age) : null,
+        age: childFormData.dob ? null : (childFormData.age ? parseInt(childFormData.age) : null),
         sex: childFormData.sex,
         school: childFormData.school.trim(),
         grade: childFormData.grade.trim() || null,
         barangay: childFormData.barangay.trim(),
         guardianPhone: childFormData.guardianPhone.trim() || null,
+        notes: childFormData.notes.trim() || null,
         updatedBy: username,
         updatedAt: now
       };
@@ -361,17 +365,26 @@ const ChildProfile = ({ token }) => {
               />
             </div>
 
-            <div className="form-group">
-              <label>Age (if DOB unknown)</label>
-              <input
-                type="number"
-                name="age"
-                value={childFormData.age}
-                onChange={handleChildFormChange}
-                min="0"
-                max="18"
-              />
-            </div>
+            {childFormData.dob ? (
+              <div className="form-group">
+                <label>Age (from date of birth)</label>
+                <p style={{ margin: 0, color: '#555' }}>
+                  {getAgeFromDOB(childFormData.dob) != null ? `${getAgeFromDOB(childFormData.dob)} years` : '—'}
+                </p>
+              </div>
+            ) : (
+              <div className="form-group">
+                <label>Age (if DOB unknown)</label>
+                <input
+                  type="number"
+                  name="age"
+                  value={childFormData.age}
+                  onChange={handleChildFormChange}
+                  min="0"
+                  max="18"
+                />
+              </div>
+            )}
 
             <div className="form-group">
               <label>Sex *</label>
@@ -429,6 +442,17 @@ const ChildProfile = ({ token }) => {
               />
             </div>
 
+            <div className="form-group">
+              <label>Notes (optional)</label>
+              <textarea
+                name="notes"
+                value={childFormData.notes}
+                onChange={handleChildFormChange}
+                rows="3"
+                placeholder="Any notes about this child..."
+              />
+            </div>
+
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
                 type="submit" 
@@ -453,11 +477,16 @@ const ChildProfile = ({ token }) => {
             <p><strong>Name:</strong> {child.fullName}</p>
             <p><strong>Sex:</strong> {child.sex}</p>
             {child.dob && <p><strong>Date of Birth:</strong> {formatDate(child.dob)}</p>}
-            {child.age && <p><strong>Age:</strong> {child.age} years</p>}
+            {(getAgeFromDOB(child.dob) != null || child.age != null) && (
+              <p><strong>Age:</strong> {getAgeFromDOB(child.dob) ?? child.age} years</p>
+            )}
             <p><strong>School:</strong> {child.school}</p>
             {child.grade && <p><strong>Grade:</strong> {child.grade}</p>}
             <p><strong>Barangay:</strong> {child.barangay}</p>
             {child.guardianPhone && <p><strong>Guardian Phone:</strong> {child.guardianPhone}</p>}
+            {child.notes && (
+              <p><strong>Notes:</strong>{' '}<span style={{ whiteSpace: 'pre-wrap', color: '#555' }}>{child.notes}</span></p>
+            )}
             {child.createdBy && (
               <p style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #eee', fontSize: '12px', color: '#666' }}>
                 <strong>Registered by:</strong> {child.createdBy}

@@ -133,7 +133,7 @@ ToothAid/
    npm install
    npm run dev    # http://localhost:3000 (see vite.config.js server.port)
    ```
-   The Vite dev server proxies `/api` to the backend. In `vite.config.js`, set the proxy target to `http://localhost:3001` for a local backend (default may point to a remote Render URL).
+   The Vite dev server proxies `/api` to the backend. By default it targets `http://localhost:3001` so that edits and sync on localhost update your local MongoDB. To use the production backend instead, set `VITE_PROXY_TARGET=https://toothaid-backend.onrender.com` in `client/.env`.
 
 ### Demo login
 - Username: `demo`  

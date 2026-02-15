@@ -358,11 +358,17 @@ export const syncPush = async (token) => {
     body: JSON.stringify({ ops })
   });
 
+  const result = await response.json().catch(() => ({}));
+
   if (!response.ok) {
-    throw new Error('Sync push failed');
+    const msg = result?.error || result?.details || response.statusText;
+    throw new Error(`Sync push failed: ${msg}`);
   }
 
-  const result = await response.json();
+  if (result.errors && result.errors.length > 0) {
+    console.warn('Sync push had errors for some ops:', result.errors);
+  }
+
   if (result.ackedOpIds && result.ackedOpIds.length > 0) {
     await removeFromOutbox(result.ackedOpIds);
   }

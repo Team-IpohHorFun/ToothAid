@@ -32,20 +32,30 @@ router.post('/push', authenticateToken, async (req, res) => {
         const username = req.user?.username || 'unknown';
         
         if (op.action === 'UPSERT_CHILD') {
-          const childData = op.payload;
-          // Ensure createdBy is set (use username from token, fallback to payload, then deviceId)
-          if (!childData.createdBy) {
-            childData.createdBy = username;
-          }
-          // Set updatedBy to current user if updating
-          const existing = await Child.findOne({ childId: childData.childId });
-          if (existing) {
-            childData.updatedBy = username;
-          } else if (!childData.updatedBy) {
-            childData.updatedBy = childData.createdBy;
-          }
+          const p = op.payload;
+          // Ensure createdBy is set
+          const createdBy = p.createdBy || username;
+          const existing = await Child.findOne({ childId: p.childId });
+          const updatedBy = existing ? username : (p.updatedBy || createdBy);
+          // Build explicit update so every schema field (including notes) is written to MongoDB
+          const childData = {
+            childId: p.childId,
+            fullName: p.fullName,
+            dob: p.dob ? new Date(p.dob) : null,
+            age: p.age != null ? p.age : null,
+            sex: p.sex,
+            school: p.school,
+            grade: p.grade != null && p.grade !== '' ? p.grade : null,
+            barangay: p.barangay,
+            guardianPhone: p.guardianPhone != null && p.guardianPhone !== '' ? p.guardianPhone : null,
+            notes: p.notes != null && p.notes !== '' ? p.notes : null,
+            createdBy,
+            updatedBy,
+            createdAt: p.createdAt ? new Date(p.createdAt) : new Date(),
+            updatedAt: new Date()
+          };
           await Child.findOneAndUpdate(
-            { childId: childData.childId },
+            { childId: p.childId },
             childData,
             { upsert: true, new: true }
           );

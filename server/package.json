@@ -10,7 +10,8 @@
     "seed": "node scripts/seed.js",
     "import-csv": "node scripts/import-csv.js",
     "view-data": "node scripts/view-data.js",
-    "migrate-visits": "node scripts/migrate-visits.js"
+    "migrate-visits": "node scripts/migrate-visits.js",
+    "migrate-children-notes": "node scripts/migrate-children-notes.js"
   },
   "keywords": [],
   "author": "",
