@@ -662,7 +662,6 @@ const BuildRoster = ({ token }) => {
           </h2>
           {routineChildren
             .filter(c => !isInRoster(c.childId))
-            .slice(0, 50)
             .map(child => (
               <div key={child.childId} className="card" style={{ marginBottom: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
