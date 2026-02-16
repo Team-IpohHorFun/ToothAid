@@ -95,7 +95,7 @@ const HighRiskList = () => {
                       <span style={getTierBadgeStyle(1)}>EMERGENCY</span>
                     </div>
                     <p style={{ color: 'var(--color-muted)', fontSize: '14px', marginBottom: '8px' }}>
-                      {formatDate(visit.date)} • {visit.type}
+                      {formatDate(visit.date)}
                       {visit.createdBy && (
                         <span style={{ marginLeft: '8px', fontSize: '12px' }}>
                           • by {visit.createdBy}
@@ -143,7 +143,7 @@ const HighRiskList = () => {
                       <span style={getTierBadgeStyle(2)}>HIGH</span>
                     </div>
                     <p style={{ color: 'var(--color-muted)', fontSize: '14px', marginBottom: '8px' }}>
-                      {formatDate(visit.date)} • {visit.type}
+                      {formatDate(visit.date)}
                       {visit.createdBy && (
                         <span style={{ marginLeft: '8px', fontSize: '12px' }}>
                           • by {visit.createdBy}

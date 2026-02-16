@@ -14,6 +14,7 @@ import {
   performSync 
 } from '../db/indexedDB';
 import { getAgeFromDOB } from '../utils/age';
+import { TREATMENT_OPTIONS, EXTRACTION_CHOICES, buildTreatmentTypesArray, parseTreatmentTypesForForm } from '../utils/treatmentTypes';
 
 const ChildProfile = ({ token }) => {
   const { childId } = useParams();
@@ -43,9 +44,6 @@ const ChildProfile = ({ token }) => {
   // Error state
   const [error, setError] = useState('');
 
-  const treatmentOptions = [
-    'Cleaning', 'Fluoride', 'Filling', 'Extraction', 'Sealant', 'SDF', 'Other'
-  ];
 
   useEffect(() => {
     loadData();
@@ -172,15 +170,20 @@ const ChildProfile = ({ token }) => {
 
   // ===== VISIT EDIT HANDLERS =====
   const startEditingVisit = (visit) => {
+    const parsed = parseTreatmentTypesForForm(visit.treatmentTypes || []);
     setVisitFormData({
       date: formatDateForInput(visit.date),
-      type: visit.type || 'SCREENING',
       painFlag: visit.painFlag || false,
       swellingFlag: visit.swellingFlag || false,
       decayedTeeth: visit.decayedTeeth !== null ? visit.decayedTeeth : '',
       missingTeeth: visit.missingTeeth !== null ? visit.missingTeeth : '',
       filledTeeth: visit.filledTeeth !== null ? visit.filledTeeth : '',
-      treatmentTypes: visit.treatmentTypes || [],
+      selectedTreatmentIds: parsed.selectedIds,
+      extractionType: parsed.extractionType,
+      fillingsNumberOfTeeth: parsed.fillingsNumberOfTeeth,
+      fillingsGlassIonomer: parsed.fillingsGlassIonomer,
+      fillingsComposite: parsed.fillingsComposite,
+      temporaryFillingSurfaces: parsed.temporaryFillingSurfaces,
       notes: visit.notes || ''
     });
     setEditingVisitId(visit.visitId);
@@ -192,18 +195,19 @@ const ChildProfile = ({ token }) => {
     if (type === 'checkbox') {
       if (name === 'painFlag' || name === 'swellingFlag') {
         setVisitFormData(prev => ({ ...prev, [name]: checked }));
-      } else {
-        // Treatment type checkbox
-        setVisitFormData(prev => ({
-          ...prev,
-          treatmentTypes: checked
-            ? [...prev.treatmentTypes, value]
-            : prev.treatmentTypes.filter(t => t !== value)
-        }));
       }
     } else {
       setVisitFormData(prev => ({ ...prev, [name]: value }));
     }
+  };
+
+  const toggleVisitTreatment = (id) => {
+    setVisitFormData(prev => ({
+      ...prev,
+      selectedTreatmentIds: prev.selectedTreatmentIds.includes(id)
+        ? prev.selectedTreatmentIds.filter(x => x !== id)
+        : [...prev.selectedTreatmentIds, id]
+    }));
   };
 
   const handleSaveVisit = async (e) => {
@@ -215,16 +219,25 @@ const ChildProfile = ({ token }) => {
       const originalVisit = visits.find(v => v.visitId === editingVisitId);
       const username = localStorage.getItem('username') || 'unknown';
       
+      const treatmentTypes = buildTreatmentTypesArray({
+        selectedIds: visitFormData.selectedTreatmentIds,
+        extractionType: visitFormData.extractionType,
+        extractionPermanentCount: visitFormData.extractionPermanentCount || '',
+        extractionTemporaryCount: visitFormData.extractionTemporaryCount || '',
+        fillingsNumberOfTeeth: visitFormData.fillingsNumberOfTeeth,
+        fillingsGlassIonomer: visitFormData.fillingsGlassIonomer,
+        fillingsComposite: visitFormData.fillingsComposite,
+        temporaryFillingSurfaces: visitFormData.temporaryFillingSurfaces
+      });
       const updatedVisit = {
         ...originalVisit,
         date: new Date(visitFormData.date).toISOString(),
-        type: visitFormData.type,
         painFlag: visitFormData.painFlag,
         swellingFlag: visitFormData.swellingFlag,
         decayedTeeth: visitFormData.decayedTeeth !== '' ? parseInt(visitFormData.decayedTeeth) : null,
         missingTeeth: visitFormData.missingTeeth !== '' ? parseInt(visitFormData.missingTeeth) : null,
         filledTeeth: visitFormData.filledTeeth !== '' ? parseInt(visitFormData.filledTeeth) : null,
-        treatmentTypes: visitFormData.treatmentTypes,
+        treatmentTypes: treatmentTypes ?? [],
         notes: visitFormData.notes.trim() || null,
         updatedBy: username,
         updatedAt: new Date().toISOString()
@@ -584,15 +597,6 @@ const ChildProfile = ({ token }) => {
                     </div>
 
                     <div className="form-group">
-                      <label>Visit Type *</label>
-                      <select name="type" value={visitFormData.type} onChange={handleVisitFormChange} required>
-                        <option value="SCREENING">Screening</option>
-                        <option value="TREATMENT">Treatment</option>
-                        <option value="FOLLOWUP">Follow-up</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
                       <label>Flags</label>
                       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         <button
@@ -683,43 +687,48 @@ const ChildProfile = ({ token }) => {
 
                     <div className="form-group">
                       <label>Treatment Types</label>
-                      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        {treatmentOptions.map(option => {
-                          const isSelected = visitFormData.treatmentTypes.includes(option);
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {TREATMENT_OPTIONS.map(opt => {
+                          const isSelected = (visitFormData.selectedTreatmentIds || []).includes(opt.id);
                           return (
-                            <button
-                              key={option}
-                              type="button"
-                              onClick={() => {
-                                setVisitFormData(prev => ({
-                                  ...prev,
-                                  treatmentTypes: isSelected
-                                    ? prev.treatmentTypes.filter(t => t !== option)
-                                    : [...prev.treatmentTypes, option]
-                                }));
-                              }}
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                padding: '12px 18px',
-                                borderRadius: '12px',
-                                border: isSelected ? '2px solid var(--color-primary)' : '2px solid #e5e5ea',
-                                background: isSelected ? 'var(--color-primary-soft)' : '#f2f2f7',
-                                color: isSelected ? 'var(--color-primary)' : '#1c1c1e',
-                                fontSize: '15px',
-                                fontWeight: '600',
-                                cursor: 'pointer',
-                                transition: 'all 0.15s ease'
-                              }}
-                            >
-                              {isSelected && (
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '16px', height: '16px' }}>
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
+                            <div key={opt.id} style={{ marginBottom: isSelected && opt.subType ? '8px' : '0' }}>
+                              <button
+                                type="button"
+                                onClick={() => toggleVisitTreatment(opt.id)}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', width: 'fit-content', maxWidth: '100%', textAlign: 'left',
+                                  border: isSelected ? '2px solid var(--color-primary)' : '2px solid #e5e5ea',
+                                  background: isSelected ? 'var(--color-primary-soft)' : '#f2f2f7',
+                                  color: isSelected ? 'var(--color-primary)' : '#1c1c1e', fontSize: '15px', fontWeight: '600', cursor: 'pointer'
+                                }}
+                              >
+                                {isSelected && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '16px', height: '16px', flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg>}
+                                {opt.label}
+                              </button>
+                              {isSelected && opt.subType === 'extraction' && (
+                                <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Permanent teeth extracted</label><input type="number" name="extractionPermanentCount" value={visitFormData.extractionPermanentCount || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%' }} /></div>
+                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Temporary teeth extracted</label><input type="number" name="extractionTemporaryCount" value={visitFormData.extractionTemporaryCount || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%' }} /></div>
+                                  </div>
+                                </div>
                               )}
-                              {option}
-                            </button>
+                              {isSelected && opt.subType === 'fillings' && (
+                                <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Number of teeth</label><input type="number" name="fillingsNumberOfTeeth" value={visitFormData.fillingsNumberOfTeeth || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%' }} /></div>
+                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Glass Ionomer (per surface)</label><input type="number" name="fillingsGlassIonomer" value={visitFormData.fillingsGlassIonomer || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%' }} /></div>
+                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Composite (per surface)</label><input type="number" name="fillingsComposite" value={visitFormData.fillingsComposite || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%' }} /></div>
+                                  </div>
+                                </div>
+                              )}
+                              {isSelected && opt.subType === 'temporary_filling' && (
+                                <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
+                                  <label style={{ fontSize: '12px', color: '#666' }}>Number of surfaces</label>
+                                  <input type="number" name="temporaryFillingSurfaces" value={visitFormData.temporaryFillingSurfaces || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%', maxWidth: '120px' }} />
+                                </div>
+                              )}
+                            </div>
                           );
                         })}
                       </div>
@@ -799,7 +808,6 @@ const ChildProfile = ({ token }) => {
                         </button>
                       </div>
                     </div>
-                    <span className={`timeline-type ${visit.type}`}>{visit.type}</span>
                     
                     {(visit.painFlag || visit.swellingFlag) && (
                       <div style={{ marginTop: '8px' }}>

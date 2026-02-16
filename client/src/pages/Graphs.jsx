@@ -10,6 +10,8 @@ import {
   assertChartData,
   getCumulativeLatestVisits
 } from '../utils/timeBuckets';
+import { TREATMENT_CHART_LABELS, getTreatmentCategoryAndValue } from '../utils/treatmentTypes';
+import { downloadTreatmentSummaryExcel } from '../utils/exportTreatmentSummary';
 
 const Graphs = () => {
   const [loading, setLoading] = useState(true);
@@ -49,6 +51,13 @@ const Graphs = () => {
   
   // Store raw visits for pie chart filtering
   const [allVisits, setAllVisits] = useState([]);
+
+  // Export treatment summary: monthly or yearly, month/year selection
+  const now = new Date();
+  const [exportRange, setExportRange] = useState('monthly'); // 'monthly' | 'yearly'
+  const [exportMonth, setExportMonth] = useState(now.getMonth() + 1);
+  const [exportYear, setExportYear] = useState(now.getFullYear());
+  const [exporting, setExporting] = useState(false);
   
   // Active point state for custom tooltip (only shows when dot is touched directly)
   const [activePoint, setActivePoint] = useState(null); // { chartId, index, x, y, value, label }
@@ -313,61 +322,42 @@ const Graphs = () => {
         });
         assertChartData(fDmftRatio, 'F/DMFT Ratio');
 
-        // Chart 4: Treatments by Type - Bar chart
-        const treatmentTypes = ['Filling', 'Extraction', 'Fluoride', 'Sealant', 'SDF', 'Cleaning', 'Other'];
+        // Chart 4: Treatments by Type (big titles; Extraction = sum of permanent + temporary teeth)
         const treatmentsByTypeCounts = {};
-        treatmentTypes.forEach(type => {
-          treatmentsByTypeCounts[type] = 0;
-        });
-        
+        TREATMENT_CHART_LABELS.forEach(label => { treatmentsByTypeCounts[label] = 0; });
         visits.forEach(visit => {
           if (visit.treatmentTypes && visit.treatmentTypes.length > 0) {
             visit.treatmentTypes.forEach(treatment => {
-              const normalized = treatment.trim();
-              if (treatmentsByTypeCounts.hasOwnProperty(normalized)) {
-                treatmentsByTypeCounts[normalized]++;
-              } else {
-                treatmentsByTypeCounts['Other']++;
+              const parsed = getTreatmentCategoryAndValue(treatment);
+              if (parsed && treatmentsByTypeCounts.hasOwnProperty(parsed.category)) {
+                treatmentsByTypeCounts[parsed.category] += parsed.value;
+              } else if (parsed) {
+                treatmentsByTypeCounts['Others'] = (treatmentsByTypeCounts['Others'] || 0) + parsed.value;
               }
             });
           }
         });
-
-        const treatmentsByType = Object.keys(treatmentsByTypeCounts)
-          .map(type => ({
-            type: type,
-            count: treatmentsByTypeCounts[type]
-          }))
+        const treatmentsByType = TREATMENT_CHART_LABELS
+          .map(type => ({ type, count: treatmentsByTypeCounts[type] || 0 }))
           .filter(item => item.count > 0)
           .sort((a, b) => b.count - a.count);
 
-        // Chart 5: Treatments by School - Stacked bar chart (top 10)
+        // Chart 5: Treatments by School - Stacked bar (big titles; Extraction = sum of teeth)
         const treatmentsBySchoolData = {};
         visits.forEach(visit => {
           if (visit.treatmentTypes && visit.treatmentTypes.length > 0) {
             const child = childMap[visit.childId];
             if (child && child.school) {
               const school = child.school;
-              
               if (!treatmentsBySchoolData[school]) {
-                treatmentsBySchoolData[school] = {
-                  school: school,
-                  Filling: 0,
-                  Extraction: 0,
-                  Fluoride: 0,
-                  Sealant: 0,
-                  SDF: 0,
-                  Cleaning: 0,
-                  Other: 0
-                };
+                treatmentsBySchoolData[school] = { school };
+                TREATMENT_CHART_LABELS.forEach(l => { treatmentsBySchoolData[school][l] = 0; });
               }
-
               visit.treatmentTypes.forEach(treatment => {
-                const normalized = treatment.trim();
-                if (treatmentsBySchoolData[school].hasOwnProperty(normalized)) {
-                  treatmentsBySchoolData[school][normalized]++;
-                } else {
-                  treatmentsBySchoolData[school]['Other']++;
+                const parsed = getTreatmentCategoryAndValue(treatment);
+                if (parsed) {
+                  const key = treatmentsBySchoolData[school].hasOwnProperty(parsed.category) ? parsed.category : 'Others';
+                  treatmentsBySchoolData[school][key] = (treatmentsBySchoolData[school][key] || 0) + parsed.value;
                 }
               });
             }
@@ -531,35 +521,24 @@ const Graphs = () => {
     return allVisits;
   }, [allVisits, pieTimeFilter]);
   
-  // Memoize pie chart data based on filtered visits
+  // Memoize pie chart data: all treatment types (big titles), Extraction = sum of permanent + temporary teeth
   const pieChartData = useMemo(() => {
     if (filteredVisitsForPie.length === 0) return [];
-    
-    const treatmentTypes = ['Filling', 'Extraction', 'Fluoride', 'Sealant', 'SDF', 'Cleaning', 'Other'];
-    const treatmentsByTypeCounts = {};
-    treatmentTypes.forEach(type => {
-      treatmentsByTypeCounts[type] = 0;
-    });
-    
+    const counts = {};
+    TREATMENT_CHART_LABELS.forEach(l => { counts[l] = 0; });
     filteredVisitsForPie.forEach(visit => {
       if (visit.treatmentTypes && visit.treatmentTypes.length > 0) {
         visit.treatmentTypes.forEach(treatment => {
-          const normalized = treatment.trim();
-          if (treatmentsByTypeCounts.hasOwnProperty(normalized)) {
-            treatmentsByTypeCounts[normalized]++;
-          } else {
-            treatmentsByTypeCounts['Other']++;
+          const parsed = getTreatmentCategoryAndValue(treatment);
+          if (parsed) {
+            const key = counts.hasOwnProperty(parsed.category) ? parsed.category : 'Others';
+            counts[key] = (counts[key] || 0) + parsed.value;
           }
         });
       }
     });
-    
-    return Object.keys(treatmentsByTypeCounts)
-      .map(type => ({
-        name: type,
-        value: treatmentsByTypeCounts[type],
-        color: colors[type] || colors.Other
-      }))
+    return TREATMENT_CHART_LABELS
+      .map((name, i) => ({ name, value: counts[name] || 0, color: schoolColors[i % schoolColors.length] }))
       .filter(item => item.value > 0)
       .sort((a, b) => b.value - a.value);
   }, [filteredVisitsForPie]);
@@ -951,17 +930,10 @@ const Graphs = () => {
 
       case 'treatmentsBySchool':
         if (chartData.treatmentsBySchool.length === 0) return null;
-        
-        const treatmentLegendItems = [
-          { key: 'Filling', color: colors.Filling },
-          { key: 'Extraction', color: colors.Extraction },
-          { key: 'Fluoride', color: colors.Fluoride },
-          { key: 'Sealant', color: colors.Sealant },
-          { key: 'SDF', color: colors.SDF },
-          { key: 'Cleaning', color: colors.Cleaning },
-          { key: 'Other', color: colors.Other }
-        ];
-        
+        const treatmentLegendItems = TREATMENT_CHART_LABELS.map((label, i) => ({
+          key: label,
+          color: schoolColors[i % schoolColors.length]
+        }));
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
             <h2 style={{ marginBottom: '16px', fontSize: '18px' }}>Treatments by School</h2>
@@ -987,13 +959,9 @@ const Graphs = () => {
                   labelStyle={{ color: '#666', fontSize: '11px', marginBottom: '2px' }}
                   itemStyle={{ fontWeight: '600' }}
                 />
-                <Bar dataKey="Filling" stackId="a" fill={colors.Filling} />
-                <Bar dataKey="Extraction" stackId="a" fill={colors.Extraction} />
-                <Bar dataKey="Fluoride" stackId="a" fill={colors.Fluoride} />
-                <Bar dataKey="Sealant" stackId="a" fill={colors.Sealant} />
-                <Bar dataKey="SDF" stackId="a" fill={colors.SDF} />
-                <Bar dataKey="Cleaning" stackId="a" fill={colors.Cleaning} />
-                <Bar dataKey="Other" stackId="a" fill={colors.Other} />
+                {TREATMENT_CHART_LABELS.map((label, i) => (
+                  <Bar key={label} dataKey={label} stackId="a" fill={schoolColors[i % schoolColors.length]} />
+                ))}
               </BarChart>
             </ResponsiveContainer>
             
@@ -1283,6 +1251,125 @@ const Graphs = () => {
               }}>
                 Coverage
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Export treatment summary (Excel) */}
+      <div style={{ marginBottom: '28px' }}>
+        <h2 style={{
+          fontSize: '14px',
+          fontWeight: '600',
+          color: 'var(--color-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          marginBottom: '12px',
+          paddingLeft: '4px'
+        }}>
+          Export
+        </h2>
+        <div className="card" style={{ padding: '16px' }}>
+          <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
+            Download an Excel summary of treatments given by month or by year.
+          </p>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+            <button
+              type="button"
+              onClick={() => setExportRange('monthly')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: '2px solid',
+                borderColor: exportRange === 'monthly' ? 'var(--color-primary)' : '#e5e5ea',
+                background: exportRange === 'monthly' ? 'var(--color-primary-soft)' : '#f2f2f7',
+                color: exportRange === 'monthly' ? 'var(--color-primary)' : '#666',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setExportRange('yearly')}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: '2px solid',
+                borderColor: exportRange === 'yearly' ? 'var(--color-primary)' : '#e5e5ea',
+                background: exportRange === 'yearly' ? 'var(--color-primary-soft)' : '#f2f2f7',
+                color: exportRange === 'yearly' ? 'var(--color-primary)' : '#666',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Yearly
+            </button>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+            {exportRange === 'monthly' && (
+              <div>
+                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Month</label>
+                <select
+                  value={exportMonth}
+                  onChange={(e) => setExportMonth(Number(e.target.value))}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e5ea',
+                    fontSize: '14px',
+                    minWidth: '120px'
+                  }}
+                >
+                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+                    <option key={m} value={m}>
+                      {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            <div>
+              <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Year</label>
+              <select
+                value={exportYear}
+                onChange={(e) => setExportYear(Number(e.target.value))}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e5ea',
+                  fontSize: '14px',
+                  minWidth: '90px'
+                }}
+              >
+                {Array.from({ length: 6 }, (_, i) => now.getFullYear() - i).map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ alignSelf: 'flex-end' }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={exporting || allVisits.length === 0}
+                onClick={async () => {
+                  setExporting(true);
+                  try {
+                    await downloadTreatmentSummaryExcel(allVisits, exportRange, exportMonth, exportYear);
+                  } catch (e) {
+                    console.error(e);
+                    alert('Export failed. Please try again.');
+                  } finally {
+                    setExporting(false);
+                  }
+                }}
+                style={{ padding: '10px 20px' }}
+              >
+                {exporting ? 'Generating…' : 'Download Excel'}
+              </button>
             </div>
           </div>
         </div>

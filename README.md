@@ -142,7 +142,7 @@ ToothAid/
 ## Data models (summary)
 
 - **Child:** childId, fullName, dob/age, sex, school, grade, barangay, guardianPhone, timestamps
-- **Visit:** visitId, childId, date, type (SCREENING/TREATMENT/FOLLOWUP), painFlag, swellingFlag, decayedTeeth, missingTeeth, filledTeeth, treatmentTypes[], notes
+- **Visit:** visitId, childId, date, painFlag, swellingFlag, decayedTeeth, missingTeeth, filledTeeth, treatmentTypes[], notes
 - **ClinicDay:** clinicDayId, date, school, capacity, amCapacity, pmCapacity, notes, createdBy
 - **Appointment:** appointmentId, childId, clinicDayId, timeWindow, slotNumber, reason, status, priorityTier, urgencyScore, createdBy
 

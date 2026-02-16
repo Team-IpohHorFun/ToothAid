@@ -486,21 +486,6 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 8px;
 }
 
-.timeline-type.SCREENING {
-  background: var(--color-primary-soft);
-  color: var(--color-primary-hover);
-}
-
-.timeline-type.TREATMENT {
-  background: #f3e5f5;
-  color: #7b1fa2;
-}
-
-.timeline-type.FOLLOWUP {
-  background: var(--color-warning-soft);
-  color: #92400E;
-}
-
 .flag-badge {
   display: inline-block;
   padding: 2px 8px;

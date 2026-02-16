@@ -113,7 +113,6 @@ async function run() {
       const visitId = get(row, visitHeaders, 'visitId');
       const childId = get(row, visitHeaders, 'childId');
       const dateStr = get(row, visitHeaders, 'date');
-      const typeStr = get(row, visitHeaders, 'type') || 'SCREENING';
       const painFlag = get(row, visitHeaders, 'painFlag');
       const swellingFlag = get(row, visitHeaders, 'swellingFlag');
       const decayedTeeth = get(row, visitHeaders, 'decayedTeeth');
@@ -121,8 +120,6 @@ async function run() {
       const filledTeeth = get(row, visitHeaders, 'filledTeeth');
       const treatmentTypes = get(row, visitHeaders, 'treatmentTypes');
       const notes = get(row, visitHeaders, 'notes');
-      const rawType = typeStr.trim().toUpperCase();
-      const visitType = ['SCREENING', 'TREATMENT', 'FOLLOWUP'].includes(rawType) ? rawType : 'SCREENING';
       const treatments = treatmentTypes
         .split(',')
         .map((s) => s.trim())
@@ -131,7 +128,6 @@ async function run() {
         visitId,
         childId,
         date: new Date(dateStr || Date.now()),
-        type: visitType,
         painFlag: painFlag.toLowerCase() === 'true',
         swellingFlag: swellingFlag.toLowerCase() === 'true',
         decayedTeeth: parseInt(decayedTeeth, 10) || 0,

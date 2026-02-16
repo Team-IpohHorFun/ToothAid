@@ -4,6 +4,7 @@ import NavBar from '../components/NavBar';
 import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
 import { searchChildren, getAllChildren, addVisit, addToOutbox, performSync } from '../db/indexedDB';
+import { TREATMENT_OPTIONS, EXTRACTION_CHOICES, buildTreatmentTypesArray } from '../utils/treatmentTypes';
 
 const RegisterChild = ({ token }) => {
   const navigate = useNavigate();
@@ -12,30 +13,25 @@ const RegisterChild = ({ token }) => {
   const [loading, setLoading] = useState(false);
   const [selectedChild, setSelectedChild] = useState(null);
   
-  // Visit form state (exact same as original AddVisit)
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    type: 'SCREENING',
     painFlag: false,
     swellingFlag: false,
     decayedTeeth: '',
     missingTeeth: '',
     filledTeeth: '',
-    treatmentTypes: [],
+    selectedTreatmentIds: [],
+    extractionType: 'Permanent',
+    extractionPermanentCount: '',
+    extractionTemporaryCount: '',
+    fillingsNumberOfTeeth: '',
+    fillingsGlassIonomer: '',
+    fillingsComposite: '',
+    temporaryFillingSurfaces: '',
     notes: ''
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-
-  const treatmentOptions = [
-    'Cleaning',
-    'Fluoride',
-    'Filling',
-    'Extraction',
-    'Sealant',
-    'SDF',
-    'Other'
-  ];
 
   // Load all children on mount
   useEffect(() => {
@@ -68,13 +64,19 @@ const RegisterChild = ({ token }) => {
     setSelectedChild(child);
     setFormData({
       date: new Date().toISOString().split('T')[0],
-      type: 'SCREENING',
       painFlag: false,
       swellingFlag: false,
       decayedTeeth: '',
       missingTeeth: '',
       filledTeeth: '',
-      treatmentTypes: [],
+      selectedTreatmentIds: [],
+      extractionType: 'Permanent',
+      extractionPermanentCount: '',
+      extractionTemporaryCount: '',
+      fillingsNumberOfTeeth: '',
+      fillingsGlassIonomer: '',
+      fillingsComposite: '',
+      temporaryFillingSurfaces: '',
       notes: ''
     });
     setError('');
@@ -85,18 +87,19 @@ const RegisterChild = ({ token }) => {
     if (type === 'checkbox') {
       if (name === 'painFlag' || name === 'swellingFlag') {
         setFormData(prev => ({ ...prev, [name]: checked }));
-      } else {
-        // Treatment type checkbox
-        setFormData(prev => ({
-          ...prev,
-          treatmentTypes: checked
-            ? [...prev.treatmentTypes, value]
-            : prev.treatmentTypes.filter(t => t !== value)
-        }));
       }
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+  };
+
+  const toggleTreatment = (id) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedTreatmentIds: prev.selectedTreatmentIds.includes(id)
+        ? prev.selectedTreatmentIds.filter(x => x !== id)
+        : [...prev.selectedTreatmentIds, id]
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -111,17 +114,26 @@ const RegisterChild = ({ token }) => {
       const now = new Date().toISOString();
       const username = localStorage.getItem('username') || 'unknown';
       
+      const treatmentTypes = buildTreatmentTypesArray({
+        selectedIds: formData.selectedTreatmentIds,
+        extractionType: formData.extractionType,
+        extractionPermanentCount: formData.extractionPermanentCount,
+        extractionTemporaryCount: formData.extractionTemporaryCount,
+        fillingsNumberOfTeeth: formData.fillingsNumberOfTeeth,
+        fillingsGlassIonomer: formData.fillingsGlassIonomer,
+        fillingsComposite: formData.fillingsComposite,
+        temporaryFillingSurfaces: formData.temporaryFillingSurfaces
+      });
       const visitData = {
         visitId,
         childId: selectedChild.childId,
         date: new Date(formData.date).toISOString(),
-        type: formData.type,
         painFlag: formData.painFlag,
         swellingFlag: formData.swellingFlag,
         decayedTeeth: formData.decayedTeeth !== '' && formData.decayedTeeth != null ? (isNaN(parseInt(formData.decayedTeeth)) ? null : parseInt(formData.decayedTeeth)) : null,
         missingTeeth: formData.missingTeeth !== '' && formData.missingTeeth != null ? (isNaN(parseInt(formData.missingTeeth)) ? null : parseInt(formData.missingTeeth)) : null,
         filledTeeth: formData.filledTeeth !== '' && formData.filledTeeth != null ? (isNaN(parseInt(formData.filledTeeth)) ? null : parseInt(formData.filledTeeth)) : null,
-        treatmentTypes: formData.treatmentTypes,
+        treatmentTypes: treatmentTypes ?? [],
         notes: formData.notes.trim() || null,
         createdBy: username,
         createdAt: now
@@ -268,15 +280,6 @@ const RegisterChild = ({ token }) => {
               </div>
 
               <div className="form-group">
-                <label>Visit Type *</label>
-                <select name="type" value={formData.type} onChange={handleChange} required>
-                  <option value="SCREENING">Screening</option>
-                  <option value="TREATMENT">Treatment</option>
-                  <option value="FOLLOWUP">Follow-up</option>
-                </select>
-              </div>
-
-              <div className="form-group">
                 <label>Flags</label>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <button
@@ -370,43 +373,48 @@ const RegisterChild = ({ token }) => {
 
               <div className="form-group">
                 <label>Treatment Types</label>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  {treatmentOptions.map(option => {
-                    const isSelected = formData.treatmentTypes.includes(option);
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {TREATMENT_OPTIONS.map(opt => {
+                    const isSelected = formData.selectedTreatmentIds.includes(opt.id);
                     return (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            treatmentTypes: isSelected
-                              ? prev.treatmentTypes.filter(t => t !== option)
-                              : [...prev.treatmentTypes, option]
-                          }));
-                        }}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          padding: '12px 18px',
-                          borderRadius: '12px',
-                          border: isSelected ? '2px solid var(--color-primary)' : '2px solid #e5e5ea',
-                          background: isSelected ? 'var(--color-primary-soft)' : '#f2f2f7',
-                          color: isSelected ? 'var(--color-primary)' : '#1c1c1e',
-                          fontSize: '15px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
-                        }}
-                      >
-                        {isSelected && (
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '16px', height: '16px' }}>
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
+                      <div key={opt.id} style={{ marginBottom: isSelected && opt.subType ? '8px' : '0' }}>
+                        <button
+                          type="button"
+                          onClick={() => toggleTreatment(opt.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '10px', width: 'fit-content', maxWidth: '100%', textAlign: 'left',
+                            border: isSelected ? '2px solid var(--color-primary)' : '2px solid #e5e5ea',
+                            background: isSelected ? 'var(--color-primary-soft)' : '#f2f2f7',
+                            color: isSelected ? 'var(--color-primary)' : '#1c1c1e', fontSize: '15px', fontWeight: '600', cursor: 'pointer'
+                          }}
+                        >
+                          {isSelected && <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: '16px', height: '16px', flexShrink: 0 }}><polyline points="20 6 9 17 4 12" /></svg>}
+                          {opt.label}
+                        </button>
+                        {isSelected && opt.subType === 'extraction' && (
+                          <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                              <div><label style={{ fontSize: '12px', color: '#666' }}>Permanent teeth extracted</label><input type="number" name="extractionPermanentCount" value={formData.extractionPermanentCount} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
+                              <div><label style={{ fontSize: '12px', color: '#666' }}>Temporary teeth extracted</label><input type="number" name="extractionTemporaryCount" value={formData.extractionTemporaryCount} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
+                            </div>
+                          </div>
                         )}
-                        {option}
-                      </button>
+                        {isSelected && opt.subType === 'fillings' && (
+                          <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
+                              <div><label style={{ fontSize: '12px', color: '#666' }}>Number of teeth</label><input type="number" name="fillingsNumberOfTeeth" value={formData.fillingsNumberOfTeeth} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
+                              <div><label style={{ fontSize: '12px', color: '#666' }}>Glass Ionomer (per surface)</label><input type="number" name="fillingsGlassIonomer" value={formData.fillingsGlassIonomer} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
+                              <div><label style={{ fontSize: '12px', color: '#666' }}>Composite (per surface)</label><input type="number" name="fillingsComposite" value={formData.fillingsComposite} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
+                            </div>
+                          </div>
+                        )}
+                        {isSelected && opt.subType === 'temporary_filling' && (
+                          <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
+                            <label style={{ fontSize: '12px', color: '#666' }}>Number of surfaces</label>
+                            <input type="number" name="temporaryFillingSurfaces" value={formData.temporaryFillingSurfaces} onChange={handleChange} min="0" style={{ width: '100%', maxWidth: '120px' }} />
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

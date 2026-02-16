@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import PageHeader from '../components/PageHeader';
 import { 
@@ -317,7 +317,19 @@ const ClinicDayRoster = ({ token }) => {
             <div key={appointment.appointmentId} className="card" style={{ marginBottom: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                 <div style={{ flex: 1 }}>
-                  <h3 style={{ marginBottom: '4px' }}>{child?.fullName || 'Unknown'}</h3>
+                  <h3 style={{ marginBottom: '4px' }}>
+                    <Link
+                      to={child?.childId ? `/child/${child.childId}/visit` : '#'}
+                      style={{
+                        color: 'var(--color-primary)',
+                        textDecoration: 'none',
+                        fontWeight: '600',
+                        cursor: child?.childId ? 'pointer' : 'default'
+                      }}
+                    >
+                      {child?.fullName || 'Unknown'}
+                    </Link>
+                  </h3>
                   <p style={{ color: '#666', fontSize: '14px', marginBottom: '4px' }}>
                     {appointment.timeWindow === 'AM' ? 'AM slot' : 
                      appointment.timeWindow === 'PM' ? 'PM slot' : 

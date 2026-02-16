@@ -17,11 +17,6 @@ const visitSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  type: {
-    type: String,
-    enum: ['SCREENING', 'TREATMENT', 'FOLLOWUP'],
-    required: true
-  },
   painFlag: {
     type: Boolean,
     default: false

@@ -8,6 +8,15 @@ import { authenticateToken } from '../middleware/auth.js';
 
 const router = express.Router();
 
+// Ensure treatmentTypes is always an array of strings for DB storage
+function normalizeTreatmentTypes(value) {
+  if (Array.isArray(value)) {
+    return value.filter(t => t != null && typeof t === 'string').map(t => String(t).trim()).filter(Boolean);
+  }
+  if (value != null && typeof value === 'string') return [value.trim()].filter(Boolean);
+  return [];
+}
+
 // Push operations from client
 router.post('/push', authenticateToken, async (req, res) => {
   try {
@@ -61,18 +70,17 @@ router.post('/push', authenticateToken, async (req, res) => {
           );
         } else if (op.action === 'ADD_VISIT') {
           const payload = op.payload;
-          // Create clean visitData with only allowed fields
+          // Create clean visitData with only allowed fields; always sync treatment data
           const visitData = {
             visitId: payload.visitId,
             childId: payload.childId,
             date: payload.date,
-            type: payload.type,
             painFlag: payload.painFlag || false,
             swellingFlag: payload.swellingFlag || false,
             decayedTeeth: payload.decayedTeeth !== undefined ? payload.decayedTeeth : null,
             missingTeeth: payload.missingTeeth !== undefined ? payload.missingTeeth : null,
             filledTeeth: payload.filledTeeth !== undefined ? payload.filledTeeth : null,
-            treatmentTypes: payload.treatmentTypes || [],
+            treatmentTypes: normalizeTreatmentTypes(payload.treatmentTypes),
             notes: payload.notes || null,
             createdBy: payload.createdBy || username,
             createdAt: payload.createdAt || new Date()
@@ -88,7 +96,7 @@ router.post('/push', authenticateToken, async (req, res) => {
               { visitId: visitData.visitId },
               { 
                 $set: visitData,
-                $unset: { referralFlag: '', dmft: '', DMFT: '' }
+                $unset: { referralFlag: '', dmft: '', DMFT: '', type: '' }
               },
               { new: true }
             );
@@ -149,26 +157,25 @@ router.post('/push', authenticateToken, async (req, res) => {
           await Visit.findOneAndDelete({ visitId });
           console.log(`✓ DELETE_VISIT: ${visitId}`);
         } else if (op.action === 'UPDATE_VISIT') {
-          // Update existing visit
+          // Update existing visit; always sync treatment data
           const payload = op.payload;
           const visitData = {
             visitId: payload.visitId,
             childId: payload.childId,
             date: payload.date,
-            type: payload.type,
             painFlag: payload.painFlag || false,
             swellingFlag: payload.swellingFlag || false,
             decayedTeeth: payload.decayedTeeth !== undefined ? payload.decayedTeeth : null,
             missingTeeth: payload.missingTeeth !== undefined ? payload.missingTeeth : null,
             filledTeeth: payload.filledTeeth !== undefined ? payload.filledTeeth : null,
-            treatmentTypes: payload.treatmentTypes || [],
+            treatmentTypes: normalizeTreatmentTypes(payload.treatmentTypes),
             notes: payload.notes || null,
             updatedBy: payload.updatedBy || username,
             updatedAt: new Date()
           };
           await Visit.findOneAndUpdate(
             { visitId: visitData.visitId },
-            { $set: visitData },
+            { $set: visitData, $unset: { type: '' } },
             { new: true }
           );
           console.log(`✓ UPDATE_VISIT: ${visitData.visitId}`);
@@ -231,7 +238,7 @@ router.get('/pull', authenticateToken, async (req, res) => {
 
     // Remove old fields from visits (safety measure)
     const cleanedVisits = visits.map(visit => {
-      const { referralFlag, dmft, DMFT, ...cleanVisit } = visit;
+      const { referralFlag, dmft, DMFT, type, ...cleanVisit } = visit;
       return cleanVisit;
     });
 
