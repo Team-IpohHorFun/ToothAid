@@ -14,11 +14,9 @@ const getApiBaseUrl = () => {
     return apiUrl;
   }
 
-  // Production: must set VITE_API_URL when building (e.g. VITE_API_URL=https://your-api.example.com)
-  const prodUrl = import.meta.env.VITE_API_URL || '';
-  const apiUrl = (prodUrl || '').replace(/\/$/, '');
-  if (!apiUrl && import.meta.env.PROD) console.warn('VITE_API_URL not set — auth and sync will fail. Set it when building for production.');
-  return apiUrl;
+  // Production: use VITE_API_URL if set at build time, otherwise fallback to your deployed backend
+  const prodUrl = (import.meta.env.VITE_API_URL || 'https://toothaid-backend.onrender.com').replace(/\/$/, '');
+  return prodUrl;
 };
 
 // Paths are always direct: /auth/login, /sync/push, etc. (no /api prefix)
