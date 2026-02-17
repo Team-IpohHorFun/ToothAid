@@ -181,18 +181,48 @@ IndexedDB: `children`, `visits`, `clinicdays`, `appointments`, `outbox`, `meta` 
 3. Sync page shows pending ops
 4. Go online → Sync Now to push
 
-## Production
+## Production & Deployment
 
-- **Backend:** `NODE_ENV=production`, strong `JWT_SECRET`, MongoDB URI, PM2 or similar
-- **Frontend:** `npm run build` in `client`, serve `dist/`, HTTPS for PWA
-- **Proxy:** Point client API proxy (or production API base URL) to your backend (e.g. Render or your server)
+Nothing in the app is hardcoded to localhost in production. Configure via environment variables.
+
+### Backend (e.g. Render, Railway, Fly.io)
+
+1. Set environment variables (see `server/.env.example`):
+   - `PORT` — often set by the host; default 3001 locally
+   - `MONGODB_URI` — use Atlas or your production MongoDB (e.g. `mongodb+srv://...`)
+   - `JWT_SECRET` — use a strong secret in production
+   - `NODE_ENV=production`
+   - `FRONTEND_ORIGIN` (optional) — your frontend URL for CORS, e.g. `https://your-app.netlify.app`. If unset, all origins are allowed.
+
+2. Start: `npm start` (or the start command your host uses).
+
+### Frontend (e.g. Netlify, Vercel, static host)
+
+1. **Set the API URL at build time.** The client calls your backend for auth and sync; it has no localhost in production. Set:
+   - `VITE_API_URL=https://your-backend-url.com`  
+   (no trailing slash; use the real URL of your deployed backend.)
+
+2. Build and serve:
+   ```bash
+   cd client
+   npm install
+   npm run build
+   ```
+   Serve the `client/dist/` folder (HTTPS recommended for PWA).
+
+3. Copy `client/.env.example` to `client/.env` and set `VITE_API_URL` before building, or set `VITE_API_URL` in your hosting dashboard’s build environment variables.
+
+### Summary
+
+| Where        | Variable          | Purpose |
+|-------------|-------------------|---------|
+| Backend     | `PORT`            | Server port (host often sets this) |
+| Backend     | `MONGODB_URI`     | Production database |
+| Backend     | `JWT_SECRET`      | Auth signing |
+| Backend     | `FRONTEND_ORIGIN` | Optional CORS allow-list |
+| Frontend build | `VITE_API_URL` | Backend URL for auth/sync (required in production) |
 
 ## Environment
 
-**Backend (.env):**
-- `PORT` (default 3001)
-- `MONGODB_URI`
-- `JWT_SECRET`
-- `NODE_ENV`
-
-**Client:** API base URL and path in `client/src/config.js`; dev proxy in `client/vite.config.js` (e.g. `/api` → backend). For production, build with `npm run build` and serve `client/dist/`.
+**Backend (`server/.env`):** See `server/.env.example`.  
+**Client:** For production, set `VITE_API_URL` when running `npm run build`. Dev proxy is in `client/vite.config.js` (dev only).

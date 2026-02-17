@@ -10,8 +10,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
+// CORS: allow FRONTEND_ORIGIN in production (e.g. https://your-app.netlify.app), or allow all when unset
+const frontendOrigin = process.env.FRONTEND_ORIGIN;
+const corsOptions = frontendOrigin
+  ? { origin: frontendOrigin.split(',').map((o) => o.trim()).filter(Boolean), credentials: true }
+  : {};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
