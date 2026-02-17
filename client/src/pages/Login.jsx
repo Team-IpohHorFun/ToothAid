@@ -50,13 +50,24 @@ const Login = ({ setToken }) => {
 
       let data;
       const contentType = response.headers.get('content-type');
-      
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
+      const text = await response.text();
+
+      if (contentType && contentType.includes('application/json') && text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error('Server returned invalid JSON. Check that the backend URL is correct (VITE_API_URL).');
+        }
       } else {
-        const text = await response.text();
-        console.error('Non-JSON response:', text);
-        throw new Error(`Server error: ${response.status} ${response.statusText}. Expected JSON but got: ${contentType}`);
+        console.error('Non-JSON response:', contentType, text?.slice(0, 200));
+        if (!contentType && !text) {
+          throw new Error('Server returned an empty response. The app may be calling the wrong URL — ensure the backend is deployed and VITE_API_URL is set when building the frontend.');
+        }
+        throw new Error(`Server error: ${response.status}. Expected JSON but got ${contentType || 'empty response'}. Check backend URL and CORS.`);
+      }
+
+      if (!data?.token) {
+        throw new Error('Server did not return a token. Check backend and try again.');
       }
 
       localStorage.setItem('token', data.token);

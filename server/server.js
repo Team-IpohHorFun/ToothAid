@@ -10,11 +10,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS: allow FRONTEND_ORIGIN in production (e.g. https://your-app.netlify.app), or allow all when unset
+// CORS: allow FRONTEND_ORIGIN in production (e.g. https://your-app.onrender.com). When unset, allow all origins.
 const frontendOrigin = process.env.FRONTEND_ORIGIN;
 const corsOptions = frontendOrigin
   ? { origin: frontendOrigin.split(',').map((o) => o.trim()).filter(Boolean), credentials: true }
-  : {};
+  : { origin: true }; // allow any origin when unset so mobile/deployed frontends work
 app.use(cors(corsOptions));
 app.use(express.json());
 
