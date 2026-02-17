@@ -1,10 +1,22 @@
 import { useState, useEffect, useRef } from 'react';
 
+const currentYear = new Date().getFullYear();
+
 /**
- * Beautiful DateInput component with custom calendar picker UI
- * Matches app's light theme
+ * Date input with button trigger and calendar popover.
+ * Month and year dropdowns for easy selection (e.g. date of birth).
  */
-const DateInput = ({ name, value, onChange, required, placeholder = "Choose a date" }) => {
+const DateInput = ({
+  name,
+  value,
+  onChange,
+  required,
+  placeholder = 'Select date',
+  label,
+  yearStart = currentYear - 50,
+  yearEnd = currentYear + 1,
+  showTodayButton = true
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [viewDate, setViewDate] = useState(new Date());
   const containerRef = useRef(null);
@@ -67,15 +79,6 @@ const DateInput = ({ name, value, onChange, required, placeholder = "Choose a da
     const day = new Date(year, month, 1).getDay();
     // Convert to Monday = 0, Sunday = 6
     return day === 0 ? 6 : day - 1;
-  };
-
-  // Navigate months
-  const prevMonth = () => {
-    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
-  };
-
-  const nextMonth = () => {
-    setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1));
   };
 
   // Select a date (day number uses viewDate, or pass full Date object)
@@ -159,9 +162,26 @@ const DateInput = ({ name, value, onChange, required, placeholder = "Choose a da
 
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+  const years = [];
+  for (let y = yearEnd; y >= yearStart; y--) years.push(y);
+
+  const onMonthChange = (e) => {
+    const month = parseInt(e.target.value, 10);
+    setViewDate(new Date(viewDate.getFullYear(), month, 1));
+  };
+
+  const onYearChange = (e) => {
+    const year = parseInt(e.target.value, 10);
+    setViewDate(new Date(year, viewDate.getMonth(), 1));
+  };
+
   return (
     <div ref={containerRef} style={{ position: 'relative', width: '100%' }}>
-      {/* Input field */}
+      {label && (
+        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: 'var(--color-text)', marginBottom: '6px' }}>
+          {label}
+        </label>
+      )}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
@@ -205,79 +225,54 @@ const DateInput = ({ name, value, onChange, required, placeholder = "Choose a da
             animation: 'fadeIn 0.2s ease'
           }}
         >
-          {/* Header with month/year and navigation */}
+          {/* Header with month and year dropdown menus */}
           <div
             style={{
               display: 'flex',
-              justifyContent: 'space-between',
+              justifyContent: 'center',
               alignItems: 'center',
+              gap: '8px',
               marginBottom: '20px'
             }}
           >
-            <button
-              type="button"
-              onClick={prevMonth}
+            <select
+              value={viewDate.getMonth()}
+              onChange={onMonthChange}
               style={{
-                background: 'var(--color-bg)',
-                border: '1px solid var(--color-border)',
-                color: 'var(--color-muted)',
-                fontSize: '18px',
-                cursor: 'pointer',
-                padding: '8px 14px',
+                padding: '8px 12px',
                 borderRadius: 'var(--radius-btn)',
-                transition: 'all 0.2s',
-                fontWeight: '600'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.background = 'var(--color-primary-soft)';
-                e.target.style.color = 'var(--color-primary)';
-                e.target.style.borderColor = 'var(--color-primary)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.background = 'var(--color-bg)';
-                e.target.style.color = 'var(--color-muted)';
-                e.target.style.borderColor = 'var(--color-border)';
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-card)',
+                color: 'var(--color-text)',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                outline: 'none'
               }}
             >
-              ‹
-            </button>
-            
-            <div style={{ 
-              color: 'var(--color-text)', 
-              fontSize: '16px', 
-              fontWeight: '600' 
-            }}>
-              {monthNames[viewDate.getMonth()]}{' '}
-              <span style={{ color: 'var(--color-primary)' }}>{viewDate.getFullYear()}</span>
-            </div>
-            
-            <button
-              type="button"
-              onClick={nextMonth}
+              {monthNames.map((m, i) => (
+                <option key={m} value={i}>{m}</option>
+              ))}
+            </select>
+            <select
+              value={viewDate.getFullYear()}
+              onChange={onYearChange}
               style={{
-                background: 'var(--color-bg)',
-                border: '1px solid var(--color-border)',
-                color: 'var(--color-muted)',
-                fontSize: '18px',
-                cursor: 'pointer',
-                padding: '8px 14px',
+                padding: '8px 12px',
                 borderRadius: 'var(--radius-btn)',
-                transition: 'all 0.2s',
-                fontWeight: '600'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.background = 'var(--color-primary-soft)';
-                e.target.style.color = 'var(--color-primary)';
-                e.target.style.borderColor = 'var(--color-primary)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.background = 'var(--color-bg)';
-                e.target.style.color = 'var(--color-muted)';
-                e.target.style.borderColor = 'var(--color-border)';
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-card)',
+                color: 'var(--color-text)',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                outline: 'none'
               }}
             >
-              ›
-            </button>
+              {years.map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
           </div>
 
           {/* Day names header */}
@@ -366,32 +361,33 @@ const DateInput = ({ name, value, onChange, required, placeholder = "Choose a da
             })}
           </div>
 
-          {/* Today button */}
-          <button
-            type="button"
-            onClick={() => {
-              const today = new Date();
-              setViewDate(today);
-              selectDate(today);  // Pass full Date object
-            }}
-            style={{
-              width: '100%',
-              marginTop: '16px',
-              padding: '12px',
-              background: 'var(--color-primary)',
-              border: 'none',
-              borderRadius: 'var(--radius-btn)',
-              color: '#fff',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
-            onMouseOver={(e) => e.target.style.background = 'var(--color-primary-hover)'}
-            onMouseOut={(e) => e.target.style.background = 'var(--color-primary)'}
-          >
-            Today
-          </button>
+          {showTodayButton && (
+            <button
+              type="button"
+              onClick={() => {
+                const today = new Date();
+                setViewDate(today);
+                selectDate(today);
+              }}
+              style={{
+                width: '100%',
+                marginTop: '16px',
+                padding: '12px',
+                background: 'var(--color-primary)',
+                border: 'none',
+                borderRadius: 'var(--radius-btn)',
+                color: '#fff',
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.background = 'var(--color-primary-hover)'}
+              onMouseOut={(e) => e.target.style.background = 'var(--color-primary)'}
+            >
+              Today
+            </button>
+          )}
         </div>
       )}
 

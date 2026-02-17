@@ -12,6 +12,7 @@ import {
   addToOutbox,
   performSync
 } from '../db/indexedDB';
+import { formatChildDisplayName } from '../utils/displayName';
 
 const ClinicDayRoster = ({ token }) => {
   const { clinicDayId } = useParams();
@@ -327,7 +328,7 @@ const ClinicDayRoster = ({ token }) => {
                         cursor: child?.childId ? 'pointer' : 'default'
                       }}
                     >
-                      {child?.fullName || 'Unknown'}
+                      {formatChildDisplayName(child) || 'Unknown'}
                     </Link>
                   </h3>
                   <p style={{ color: '#666', fontSize: '14px', marginBottom: '4px' }}>

@@ -19,8 +19,9 @@ const CreateClinicDay = ({ token }) => {
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    const next = (type === 'text' || type === 'textarea') && name !== 'notes' ? String(value).toUpperCase() : value;
+    setFormData(prev => ({ ...prev, [name]: next }));
   };
 
   const handleSubmit = async (e) => {

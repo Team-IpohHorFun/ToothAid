@@ -16,9 +16,9 @@ const Home = ({ setToken }) => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Get high-risk cases (only Emergency and High, not Routine)
+        // Get high-risk cases (High priority only, tier 1)
         const highRisk = await getHighRiskVisits();
-        const urgentCases = highRisk.filter(v => v.tier <= 2); // tier 1 = Emergency, tier 2 = High
+        const urgentCases = highRisk.filter(v => v.tier === 1);
         setHighRiskCount(urgentCases.length);
 
         // Get pending operations
@@ -192,7 +192,7 @@ const Home = ({ setToken }) => {
         {/* Priority Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           
-          {/* High-Risk Cases Card */}
+          {/* Priority cases Card */}
           <Link to="/high-risk" style={{ textDecoration: 'none', color: 'inherit' }}>
             <div className="card" style={{ 
               borderLeft: `4px solid ${highRiskCount > 0 ? 'var(--color-accent)' : 'var(--color-success)'}`,
@@ -220,7 +220,7 @@ const Home = ({ setToken }) => {
                       fontSize: '16px',
                       color: highRiskCount > 0 ? 'var(--color-accent)' : 'var(--color-success)'
                     }}>
-                      High-Risk Cases
+                      Priority cases
                     </h3>
                     <p style={{ margin: 0, color: 'var(--color-muted)', fontSize: '14px' }}>
                       {highRiskCount > 0 
@@ -354,7 +354,7 @@ const Home = ({ setToken }) => {
           </Link>
 
           {/* Register Child */}
-          <Link to="/search?register=true" style={{ textDecoration: 'none' }}>
+          <Link to="/register-child" style={{ textDecoration: 'none' }}>
             <div style={{
               background: 'rgba(13, 148, 136, 0.12)',
               backdropFilter: 'blur(12px)',

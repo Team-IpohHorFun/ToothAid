@@ -12,6 +12,16 @@ const childSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  firstName: {
+    type: String,
+    trim: true,
+    default: null
+  },
+  lastName: {
+    type: String,
+    trim: true,
+    default: null
+  },
   dob: {
     type: Date,
     default: null

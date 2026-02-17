@@ -4,6 +4,7 @@ import NavBar from '../components/NavBar';
 import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
 import { searchChildren, getAllChildren, addVisit, addToOutbox, performSync } from '../db/indexedDB';
+import { formatChildDisplayName } from '../utils/displayName';
 import { TREATMENT_OPTIONS, EXTRACTION_CHOICES, buildTreatmentTypesArray } from '../utils/treatmentTypes';
 
 const RegisterChild = ({ token }) => {
@@ -41,18 +42,15 @@ const RegisterChild = ({ token }) => {
   const loadAllChildren = async () => {
     setLoading(true);
     const all = await getAllChildren();
-    const sorted = all.sort((a, b) => a.fullName.localeCompare(b.fullName));
-    setResults(sorted);
+    setResults(all);
     setLoading(false);
   };
 
-  // Filter results when query changes
   useEffect(() => {
     if (query.trim().length >= 2) {
       setLoading(true);
       searchChildren(query).then(found => {
-        const sorted = found.sort((a, b) => a.fullName.localeCompare(b.fullName));
-        setResults(sorted);
+        setResults(found);
         setLoading(false);
       });
     } else if (query.trim().length === 0) {
@@ -89,7 +87,8 @@ const RegisterChild = ({ token }) => {
         setFormData(prev => ({ ...prev, [name]: checked }));
       }
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      const next = (type === 'text' || type === 'textarea') && name !== 'notes' ? String(value).toUpperCase() : value;
+      setFormData(prev => ({ ...prev, [name]: next }));
     }
   };
 
@@ -183,7 +182,7 @@ const RegisterChild = ({ token }) => {
               type="text"
               placeholder="Search by name, school, or barangay..."
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => setQuery(e.target.value.toUpperCase())}
               style={{
                 flex: 1,
                 background: 'transparent',
@@ -207,7 +206,7 @@ const RegisterChild = ({ token }) => {
                   style={{ cursor: 'pointer' }}
                   onClick={() => handleSelectChild(child)}
                 >
-                  <h3 style={{ marginBottom: '8px' }}>{child.fullName}</h3>
+                  <h3 style={{ marginBottom: '8px' }}>{formatChildDisplayName(child)}</h3>
                   <p style={{ color: '#666', fontSize: '14px', marginBottom: '4px' }}>
                     {child.school} • {child.barangay}
                   </p>
@@ -248,7 +247,7 @@ const RegisterChild = ({ token }) => {
             }}
           >
             <div>
-              <h3 style={{ marginBottom: '4px' }}>{selectedChild.fullName}</h3>
+              <h3 style={{ marginBottom: '4px' }}>{formatChildDisplayName(selectedChild)}</h3>
               <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
                 {selectedChild.school} • {selectedChild.barangay}
               </p>
@@ -401,17 +400,16 @@ const RegisterChild = ({ token }) => {
                         )}
                         {isSelected && opt.subType === 'fillings' && (
                           <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                              <div><label style={{ fontSize: '12px', color: '#666' }}>Number of teeth</label><input type="number" name="fillingsNumberOfTeeth" value={formData.fillingsNumberOfTeeth} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
-                              <div><label style={{ fontSize: '12px', color: '#666' }}>Glass Ionomer (per surface)</label><input type="number" name="fillingsGlassIonomer" value={formData.fillingsGlassIonomer} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
-                              <div><label style={{ fontSize: '12px', color: '#666' }}>Composite (per surface)</label><input type="number" name="fillingsComposite" value={formData.fillingsComposite} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', alignItems: 'end' }}>
+                              <div><label style={{ fontSize: '12px', color: '#666' }}>Number of teeth</label><input type="number" name="fillingsNumberOfTeeth" value={formData.fillingsNumberOfTeeth} onChange={handleChange} min="0" style={{ width: '100%', minHeight: '40px', boxSizing: 'border-box' }} /></div>
+                              <div><label style={{ fontSize: '12px', color: '#666' }}>Glass Ionomer (per surface)</label><input type="number" name="fillingsGlassIonomer" value={formData.fillingsGlassIonomer} onChange={handleChange} min="0" style={{ width: '100%', minHeight: '40px', boxSizing: 'border-box' }} /></div>
+                              <div><label style={{ fontSize: '12px', color: '#666' }}>Synthetic Filling (composite) per Surface</label><input type="number" name="fillingsComposite" value={formData.fillingsComposite} onChange={handleChange} min="0" style={{ width: '100%', minHeight: '40px', boxSizing: 'border-box' }} /></div>
                             </div>
                           </div>
                         )}
                         {isSelected && opt.subType === 'temporary_filling' && (
                           <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
-                            <label style={{ fontSize: '12px', color: '#666' }}>Number of surfaces</label>
-                            <input type="number" name="temporaryFillingSurfaces" value={formData.temporaryFillingSurfaces} onChange={handleChange} min="0" style={{ width: '100%', maxWidth: '120px' }} />
+                            <input type="number" name="temporaryFillingSurfaces" value={formData.temporaryFillingSurfaces} onChange={handleChange} min="0" placeholder="0" style={{ width: '100%', maxWidth: '120px', minHeight: '40px', boxSizing: 'border-box' }} />
                           </div>
                         )}
                       </div>

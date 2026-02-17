@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import NavBar from '../components/NavBar';
 import PageHeader from '../components/PageHeader';
-import { getAllChildren, getAllVisits } from '../db/indexedDB';
+import { getAllChildren, getAllVisits, getGraduationOrder } from '../db/indexedDB';
 import { 
   groupVisitsByBucket, 
   getLastNBucketsWithEqualIntervals, 
@@ -40,6 +40,7 @@ const Graphs = () => {
   });
   
   const [chartData, setChartData] = useState({
+    zeroCavitiesByGrade: [],       // Chart 0: % with 0 decayed teeth per grade (bar)
     avgDecayedTeeth: [],          // Chart 1: Average D per child (monthly)
     pctWithDecay: [],              // Chart 2: % with ≥1 decayed tooth (monthly)
     fDmftRatio: [],                // Chart 3: F/DMFT ratio (monthly)
@@ -51,6 +52,8 @@ const Graphs = () => {
   
   // Store raw visits for pie chart filtering
   const [allVisits, setAllVisits] = useState([]);
+  const [visitsWithChildren, setVisitsWithChildren] = useState([]);
+  const [zeroCavitiesYear, setZeroCavitiesYear] = useState(new Date().getFullYear());
 
   // Export treatment summary: monthly or yearly, month/year selection
   const now = new Date();
@@ -154,6 +157,11 @@ const Graphs = () => {
   const getAvailableSlides = () => {
     const slides = [];
     
+    // Chart 0: % with 0 cavities by grade (bar)
+    if (chartData.zeroCavitiesByGrade.length > 0) {
+      slides.push('zeroCavitiesByGrade');
+    }
+    
     // Chart 1: Average Decayed Teeth (D)
     if (chartData.avgDecayedTeeth.length > 0) {
       slides.push('avgDecayedTeeth');
@@ -231,6 +239,7 @@ const Graphs = () => {
             visitDate: new Date(visit.date)
           }))
           .filter(v => v.child);
+        setVisitsWithChildren(visitsWithChildren);
 
         // Group visits by bucket (used for determining time range)
         const bucketedVisits = groupVisitsByBucket(visitsWithChildren, granularity);
@@ -393,6 +402,26 @@ const Graphs = () => {
         });
 
         const latestVisits = Object.values(latestVisitsByChild);
+
+        // Chart 0: % of children with 0 decayed teeth per grade (bar chart)
+        const byGrade = {};
+        latestVisits.forEach(visit => {
+          const grade = (visit.child && visit.child.grade) ? visit.child.grade : 'Unknown';
+          if (!byGrade[grade]) byGrade[grade] = { total: 0, zero: 0 };
+          byGrade[grade].total += 1;
+          if ((visit.decayedTeeth ?? 0) === 0) byGrade[grade].zero += 1;
+        });
+        const grades1to6 = ['1st Grade', '2nd Grade', '3rd Grade', '4th Grade', '5th Grade', '6th Grade'];
+        const zeroCavitiesByGrade = Object.entries(byGrade)
+          .filter(([grade]) => grades1to6.includes(grade))
+          .map(([grade, { total, zero }]) => ({
+            grade,
+            pct: total > 0 ? parseFloat(((zero / total) * 100).toFixed(1)) : 0,
+            count: zero,
+            total
+          }))
+          .sort((a, b) => getGraduationOrder(b.grade) - getGraduationOrder(a.grade));
+
         const dmftBySchool = {};
         const dmftCountBySchool = {};
         
@@ -446,6 +475,7 @@ const Graphs = () => {
         assertChartData(avgDmftOverTime, 'Average DMFT Over Time');
 
         setChartData({
+          zeroCavitiesByGrade,
           avgDecayedTeeth,
           pctWithDecay,
           fDmftRatio,
@@ -468,6 +498,84 @@ const Graphs = () => {
   useEffect(() => {
     setCurrentSlide(0);
   }, [loading]);
+
+  // Years that have at least one visit (for zero cavities year filter)
+  const yearsWithData = useMemo(() => {
+    if (!visitsWithChildren.length) return [];
+    const set = new Set(visitsWithChildren.map(v => v.visitDate.getFullYear()));
+    return Array.from(set).sort((a, b) => b - a);
+  }, [visitsWithChildren]);
+
+  // Keep selected year in sync with available data (select most recent year when data loads or selection is invalid)
+  useEffect(() => {
+    if (yearsWithData.length === 0) return;
+    if (!yearsWithData.includes(zeroCavitiesYear)) {
+      setZeroCavitiesYear(yearsWithData[0]);
+    }
+  }, [yearsWithData, zeroCavitiesYear]);
+
+  // Export: only years that have at least one visit (from allVisits)
+  const exportYearsWithData = useMemo(() => {
+    if (!allVisits.length) return [];
+    const set = new Set(allVisits.map(v => new Date(v.date).getFullYear()).filter(y => !isNaN(y)));
+    return Array.from(set).sort((a, b) => b - a);
+  }, [allVisits]);
+
+  // Export (monthly): only months that have at least one visit in the selected year
+  const exportMonthsWithDataInYear = useMemo(() => {
+    if (!allVisits.length || !exportYear) return [];
+    const inYear = allVisits.filter(v => {
+      const d = new Date(v.date);
+      return !isNaN(d) && d.getFullYear() === exportYear;
+    });
+    const set = new Set(inYear.map(v => new Date(v.date).getMonth() + 1));
+    return Array.from(set).sort((a, b) => a - b);
+  }, [allVisits, exportYear]);
+
+  // Keep export year/month in sync with available data
+  useEffect(() => {
+    if (exportYearsWithData.length === 0) return;
+    if (!exportYearsWithData.includes(exportYear)) {
+      setExportYear(exportYearsWithData[0]);
+      return;
+    }
+    if (exportRange === 'monthly' && exportMonthsWithDataInYear.length > 0 && !exportMonthsWithDataInYear.includes(exportMonth)) {
+      setExportMonth(exportMonthsWithDataInYear[0]);
+    }
+  }, [exportYearsWithData, exportMonthsWithDataInYear, exportYear, exportMonth, exportRange]);
+
+  // % with zero cavities by grade, filtered by selected year (latest visit per child within that year)
+  const grades1to6 = ['1st Grade', '2nd Grade', '3rd Grade', '4th Grade', '5th Grade', '6th Grade'];
+  const zeroCavitiesByGradeFiltered = useMemo(() => {
+    if (!visitsWithChildren.length) return [];
+    const inYear = visitsWithChildren.filter(v => v.visitDate.getFullYear() === zeroCavitiesYear);
+    const latestByChild = {};
+    inYear.forEach(visit => {
+      const childId = visit.childId;
+      if (!latestByChild[childId] || visit.visitDate > latestByChild[childId].visitDate) {
+        latestByChild[childId] = visit;
+      }
+    });
+    const latestVisits = Object.values(latestByChild);
+    const byGrade = {};
+    latestVisits.forEach(visit => {
+      const grade = (visit.child && visit.child.grade) ? visit.child.grade : 'Unknown';
+      if (!byGrade[grade]) byGrade[grade] = { total: 0, zero: 0 };
+      byGrade[grade].total += 1;
+      if ((visit.decayedTeeth ?? 0) === 0) byGrade[grade].zero += 1;
+    });
+    return grades1to6
+      .map(grade => {
+        const data = byGrade[grade] || { total: 0, zero: 0 };
+        return {
+          grade,
+          pct: data.total > 0 ? parseFloat(((data.zero / data.total) * 100).toFixed(1)) : 0,
+          count: data.zero,
+          total: data.total
+        };
+      })
+      .sort((a, b) => getGraduationOrder(b.grade) - getGraduationOrder(a.grade));
+  }, [visitsWithChildren, zeroCavitiesYear]);
 
   const colors = {
     Filling: 'var(--color-primary)',
@@ -696,6 +804,90 @@ const Graphs = () => {
 
   const renderSlide = (slideType, slideIndex) => {
     switch (slideType) {
+      case 'zeroCavitiesByGrade':
+        if (chartData.zeroCavitiesByGrade.length === 0 || yearsWithData.length === 0) return null;
+        return (
+          <div className="card" style={{ marginBottom: '20px', minHeight: '300px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px' }}>% with Zero Cavities by Grade</h2>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <label style={{ fontSize: '14px', color: 'var(--color-muted)' }}>Year</label>
+                <select
+                  value={yearsWithData.includes(zeroCavitiesYear) ? zeroCavitiesYear : (yearsWithData[0] ?? zeroCavitiesYear)}
+                  onChange={(e) => setZeroCavitiesYear(Number(e.target.value))}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--color-border)',
+                    background: '#fff',
+                    fontSize: '14px',
+                    color: 'var(--color-text)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {yearsWithData.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <ResponsiveContainer width="100%" height={250} style={{ outline: 'none', userSelect: 'none', WebkitUserSelect: 'none', WebkitTapHighlightColor: 'transparent' }}>
+              <BarChart data={zeroCavitiesByGradeFiltered} margin={{ top: 5, right: 10, bottom: 10, left: -20 }} style={{ outline: 'none' }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="grade"
+                  tick={false}
+                  axisLine={{ stroke: '#ccc' }}
+                  tickLine={false}
+                />
+                <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} tick={{ fontSize: 10 }} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #ccc',
+                    borderRadius: '4px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+                    padding: '6px 10px',
+                    fontSize: '12px'
+                  }}
+                  labelStyle={{ color: '#666', fontSize: '11px', marginBottom: '2px' }}
+                  itemStyle={{ color: '#333', fontWeight: '600' }}
+                  formatter={(value) => [`${value}%`, '% with 0 cavities']}
+                />
+                <Bar dataKey="pct" name="% with 0 cavities" radius={[8, 8, 0, 0]}>
+                  {zeroCavitiesByGradeFiltered.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={schoolColors[index % schoolColors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              marginTop: '16px',
+              paddingTop: '16px',
+              borderTop: '1px solid #e0e0e0'
+            }}>
+              {zeroCavitiesByGradeFiltered.map((entry, index) => (
+                <div key={index} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      width: '16px',
+                      height: '16px',
+                      backgroundColor: schoolColors[index % schoolColors.length],
+                      borderRadius: '2px',
+                      flexShrink: 0
+                    }}
+                  />
+                  <span style={{ fontSize: '14px', color: '#333' }}>{entry.grade}</span>
+                  <span style={{ fontSize: '12px', color: '#888', marginLeft: 'auto' }}>({entry.pct}%)</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+
       case 'avgDecayedTeeth':
         return (
           <div className="card" style={{ marginBottom: '20px', minHeight: '400px' }}>
@@ -1256,7 +1448,7 @@ const Graphs = () => {
         </div>
       </div>
 
-      {/* Export treatment summary (Excel) */}
+      {/* Export treatment summary (Excel) - same design as Dataset Overview */}
       <div style={{ marginBottom: '28px' }}>
         <h2 style={{
           fontSize: '14px',
@@ -1269,21 +1461,25 @@ const Graphs = () => {
         }}>
           Export
         </h2>
-        <div className="card" style={{ padding: '16px' }}>
-          <p style={{ fontSize: '14px', color: '#666', marginBottom: '12px' }}>
-            Download an Excel summary of treatments given by month or by year.
-          </p>
+
+        <div style={{
+          background: '#f8f9fa',
+          border: '1px solid #e9ecef',
+          borderRadius: '12px',
+          padding: '14px 16px'
+        }}>
+          {/* Pill toggle: Monthly / Yearly */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
             <button
               type="button"
               onClick={() => setExportRange('monthly')}
               style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: '2px solid',
-                borderColor: exportRange === 'monthly' ? 'var(--color-primary)' : '#e5e5ea',
-                background: exportRange === 'monthly' ? 'var(--color-primary-soft)' : '#f2f2f7',
-                color: exportRange === 'monthly' ? 'var(--color-primary)' : '#666',
+                padding: '10px 20px',
+                borderRadius: '999px',
+                border: '1px solid',
+                borderColor: exportRange === 'monthly' ? 'var(--color-primary)' : '#e9ecef',
+                background: '#fff',
+                color: exportRange === 'monthly' ? 'var(--color-primary)' : '#6c757d',
                 fontWeight: '600',
                 fontSize: '14px',
                 cursor: 'pointer'
@@ -1295,12 +1491,12 @@ const Graphs = () => {
               type="button"
               onClick={() => setExportRange('yearly')}
               style={{
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: '2px solid',
-                borderColor: exportRange === 'yearly' ? 'var(--color-primary)' : '#e5e5ea',
-                background: exportRange === 'yearly' ? 'var(--color-primary-soft)' : '#f2f2f7',
-                color: exportRange === 'yearly' ? 'var(--color-primary)' : '#666',
+                padding: '10px 20px',
+                borderRadius: '999px',
+                border: '1px solid',
+                borderColor: exportRange === 'yearly' ? 'var(--color-primary)' : '#e9ecef',
+                background: '#fff',
+                color: exportRange === 'yearly' ? 'var(--color-primary)' : '#6c757d',
                 fontWeight: '600',
                 fontSize: '14px',
                 cursor: 'pointer'
@@ -1309,22 +1505,30 @@ const Graphs = () => {
               Yearly
             </button>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-            {exportRange === 'monthly' && (
-              <div>
-                <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Month</label>
+
+          {/* Month (only when Monthly) and Year dropdowns - only options that have data */}
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '14px', flexWrap: 'wrap' }}>
+            {exportRange === 'monthly' && exportMonthsWithDataInYear.length > 0 && (
+              <div style={{ flex: '1 1 140px', minWidth: '120px' }}>
+                <label style={{ fontSize: '13px', color: '#6c757d', display: 'block', marginBottom: '4px' }}>
+                  Month
+                </label>
                 <select
-                  value={exportMonth}
+                  value={exportMonthsWithDataInYear.includes(exportMonth) ? exportMonth : (exportMonthsWithDataInYear[0] ?? exportMonth)}
                   onChange={(e) => setExportMonth(Number(e.target.value))}
                   style={{
-                    padding: '8px 12px',
+                    width: '100%',
+                    padding: '10px 12px',
                     borderRadius: '8px',
-                    border: '1px solid #e5e5ea',
+                    border: '1px solid #e9ecef',
+                    background: '#fff',
                     fontSize: '14px',
-                    minWidth: '120px'
+                    color: '#495057',
+                    cursor: 'pointer',
+                    appearance: 'auto'
                   }}
                 >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
+                  {exportMonthsWithDataInYear.map((m) => (
                     <option key={m} value={m}>
                       {new Date(2000, m - 1, 1).toLocaleString('default', { month: 'long' })}
                     </option>
@@ -1332,46 +1536,73 @@ const Graphs = () => {
                 </select>
               </div>
             )}
-            <div>
-              <label style={{ fontSize: '12px', color: '#666', display: 'block', marginBottom: '4px' }}>Year</label>
-              <select
-                value={exportYear}
-                onChange={(e) => setExportYear(Number(e.target.value))}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #e5e5ea',
-                  fontSize: '14px',
-                  minWidth: '90px'
-                }}
-              >
-                {Array.from({ length: 6 }, (_, i) => now.getFullYear() - i).map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-            </div>
-            <div style={{ alignSelf: 'flex-end' }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={exporting || allVisits.length === 0}
-                onClick={async () => {
-                  setExporting(true);
-                  try {
-                    await downloadTreatmentSummaryExcel(allVisits, exportRange, exportMonth, exportYear);
-                  } catch (e) {
-                    console.error(e);
-                    alert('Export failed. Please try again.');
-                  } finally {
-                    setExporting(false);
-                  }
-                }}
-                style={{ padding: '10px 20px' }}
-              >
-                {exporting ? 'Generating…' : 'Download Excel'}
-              </button>
-            </div>
+            {exportYearsWithData.length > 0 && (
+              <div style={{ flex: '1 1 100px', minWidth: '90px' }}>
+                <label style={{ fontSize: '13px', color: '#6c757d', display: 'block', marginBottom: '4px' }}>
+                  Year
+                </label>
+                <select
+                  value={exportYearsWithData.includes(exportYear) ? exportYear : (exportYearsWithData[0] ?? exportYear)}
+                  onChange={(e) => setExportYear(Number(e.target.value))}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid #e9ecef',
+                    background: '#fff',
+                    fontSize: '14px',
+                    color: '#495057',
+                    cursor: 'pointer',
+                    appearance: 'auto'
+                  }}
+                >
+                  {exportYearsWithData.map((y) => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
+
+          {/* Download Excel button */}
+          <button
+            type="button"
+            disabled={exporting || allVisits.length === 0}
+            onClick={async () => {
+              setExporting(true);
+              try {
+                await downloadTreatmentSummaryExcel(allVisits, exportRange, exportMonth, exportYear);
+              } catch (e) {
+                console.error(e);
+                alert('Export failed. Please try again.');
+              } finally {
+                setExporting(false);
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '14px 20px',
+              borderRadius: 'var(--radius-btn)',
+              border: 'none',
+              background: 'var(--color-primary)',
+              color: '#fff',
+              fontSize: '15px',
+              fontWeight: '600',
+              cursor: allVisits.length === 0 || exporting ? 'not-allowed' : 'pointer',
+              opacity: exporting || allVisits.length === 0 ? 0.7 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px'
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {exporting ? 'Generating…' : 'Download Excel'}
+          </button>
         </div>
       </div>
 

@@ -56,24 +56,36 @@ function parseTreatmentForReport(t) {
   const s = (t || '').trim();
   if (!s) return null;
 
-  // Extraction (Permanent Teeth: N) and/or (Temporary Teeth: M)
+  // Extraction (Permanent: X, Temporary: Y) or (Permanent: X) or (Temporary: Y) or legacy
   if (s.startsWith('Extraction (')) {
     const out = {};
-    const permMatch = s.match(/Permanent Teeth:\s*(\d+)/i);
-    const tempMatch = s.match(/Temporary Teeth:\s*(\d+)/i);
-    if (permMatch) out.extraction_permanent = parseInt(permMatch[1], 10);
-    if (tempMatch) out.extraction_temporary = parseInt(tempMatch[1], 10);
-    if (!permMatch && !tempMatch && s.includes('Teeth')) {
-      if (s.includes('Permanent')) out.extraction_permanent = 1;
-      else if (s.includes('Temporary')) out.extraction_temporary = 1;
+    const bothMatch = s.match(/Permanent:\s*(\d+),\s*Temporary:\s*(\d+)/i);
+    const permOnlyMatch = s.match(/Permanent:\s*(\d+)\)/i);
+    const tempOnlyMatch = s.match(/Temporary:\s*(\d+)\)/i);
+    if (bothMatch) {
+      out.extraction_permanent = parseInt(bothMatch[1], 10);
+      out.extraction_temporary = parseInt(bothMatch[2], 10);
+    } else if (permOnlyMatch) {
+      out.extraction_permanent = parseInt(permOnlyMatch[1], 10);
+    } else if (tempOnlyMatch) {
+      out.extraction_temporary = parseInt(tempOnlyMatch[1], 10);
+    } else {
+      const permMatch = s.match(/Permanent Teeth:\s*(\d+)/i);
+      const tempMatch = s.match(/Temporary Teeth:\s*(\d+)/i);
+      if (permMatch) out.extraction_permanent = parseInt(permMatch[1], 10);
+      if (tempMatch) out.extraction_temporary = parseInt(tempMatch[1], 10);
+      if (!permMatch && !tempMatch && s.includes('Teeth')) {
+        if (s.includes('Permanent')) out.extraction_permanent = 1;
+        else if (s.includes('Temporary')) out.extraction_temporary = 1;
+      }
     }
     if (Object.keys(out).length) return out;
     return { extraction_permanent: 1 };
   }
 
-  // Fillings / Restorations (N teeth, GI: X, Composite: Y)
+  // Fillings / Restorations (Teeth: N, GI: X, Composite: Y) or legacy (N teeth, GI: X, Composite: Y)
   if (s.startsWith('Fillings / Restorations (')) {
-    const m = s.match(/\((\d+)\s*teeth,\s*GI:\s*(\d+),\s*Composite:\s*(\d+)\)/i);
+    const m = s.match(/\(Teeth:\s*(\d+),\s*GI:\s*(\d+),\s*Composite:\s*(\d+)\)/i) || s.match(/\((\d+)\s*teeth,\s*GI:\s*(\d+),\s*Composite:\s*(\d+)\)/i);
     if (m) {
       return {
         fillings_number_teeth: parseInt(m[1], 10),
@@ -84,9 +96,9 @@ function parseTreatmentForReport(t) {
     return { fillings_number_teeth: 1, fillings_gi_per_surface: 0, fillings_composite_per_surface: 0 };
   }
 
-  // Temporary Filling per Surface (N)
+  // Temporary Filling per Surface (Surfaces: N) or legacy (N)
   if (s.startsWith('Temporary Filling per Surface (')) {
-    const m = s.match(/\((\d+)\)/);
+    const m = s.match(/\(Surfaces:\s*(\d+)\)/i) || s.match(/\((\d+)\)/);
     return { temporary_filling_per_surface: m ? parseInt(m[1], 10) : 1 };
   }
 

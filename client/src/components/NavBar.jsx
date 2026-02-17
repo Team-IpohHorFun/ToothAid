@@ -8,7 +8,7 @@ const NavBar = () => {
       return location.pathname === '/' || location.pathname === '/high-risk';
     }
     if (path === '/search') {
-      return location.pathname === '/search' || location.pathname.startsWith('/child');
+      return location.pathname === '/search' || location.pathname === '/register-child' || location.pathname.startsWith('/child');
     }
     if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;

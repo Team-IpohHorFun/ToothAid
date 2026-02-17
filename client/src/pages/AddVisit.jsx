@@ -5,6 +5,7 @@ import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
 import { getChild, addVisit, addToOutbox, performSync } from '../db/indexedDB';
 import { TREATMENT_OPTIONS, EXTRACTION_CHOICES, buildTreatmentTypesArray } from '../utils/treatmentTypes';
+import { formatChildDisplayName } from '../utils/displayName';
 
 const AddVisit = ({ token }) => {
   const { childId } = useParams();
@@ -45,7 +46,8 @@ const AddVisit = ({ token }) => {
         setFormData(prev => ({ ...prev, [name]: checked }));
       }
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      const next = (type === 'text' || type === 'textarea') && name !== 'notes' ? String(value).toUpperCase() : value;
+      setFormData(prev => ({ ...prev, [name]: next }));
     }
   };
 
@@ -105,7 +107,7 @@ const AddVisit = ({ token }) => {
         }
       }
 
-      navigate(`/child/${childId}`);
+      navigate(`/child/${childId}`, { state: { refreshVisits: true } });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -124,8 +126,7 @@ const AddVisit = ({ token }) => {
 
   return (
     <div className="container">
-      <PageHeader title="Add Visit" subtitle={child.fullName} icon="visit" />
-
+      <PageHeader title="Add Visit" subtitle={formatChildDisplayName(child)} icon="visit" />
       {error && <div className="alert alert-danger">{error}</div>}
 
       <form onSubmit={handleSubmit}>
@@ -222,17 +223,16 @@ const AddVisit = ({ token }) => {
                     )}
                     {isSelected && opt.subType === 'fillings' && (
                       <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                          <div><label style={{ fontSize: '12px', color: '#666' }}>Number of teeth</label><input type="number" name="fillingsNumberOfTeeth" value={formData.fillingsNumberOfTeeth} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
-                          <div><label style={{ fontSize: '12px', color: '#666' }}>Glass Ionomer (per surface)</label><input type="number" name="fillingsGlassIonomer" value={formData.fillingsGlassIonomer} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
-                          <div><label style={{ fontSize: '12px', color: '#666' }}>Composite (per surface)</label><input type="number" name="fillingsComposite" value={formData.fillingsComposite} onChange={handleChange} min="0" style={{ width: '100%' }} /></div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', alignItems: 'end' }}>
+                          <div><label style={{ fontSize: '12px', color: '#666' }}>Number of teeth</label><input type="number" name="fillingsNumberOfTeeth" value={formData.fillingsNumberOfTeeth} onChange={handleChange} min="0" style={{ width: '100%', minHeight: '40px', boxSizing: 'border-box' }} /></div>
+                          <div><label style={{ fontSize: '12px', color: '#666' }}>Glass Ionomer (per surface)</label><input type="number" name="fillingsGlassIonomer" value={formData.fillingsGlassIonomer} onChange={handleChange} min="0" style={{ width: '100%', minHeight: '40px', boxSizing: 'border-box' }} /></div>
+                          <div><label style={{ fontSize: '12px', color: '#666' }}>Synthetic Filling (composite) per Surface</label><input type="number" name="fillingsComposite" value={formData.fillingsComposite} onChange={handleChange} min="0" style={{ width: '100%', minHeight: '40px', boxSizing: 'border-box' }} /></div>
                         </div>
                       </div>
                     )}
                     {isSelected && opt.subType === 'temporary_filling' && (
                       <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
-                        <label style={{ fontSize: '12px', color: '#666' }}>Number of surfaces</label>
-                        <input type="number" name="temporaryFillingSurfaces" value={formData.temporaryFillingSurfaces} onChange={handleChange} min="0" style={{ width: '100%', maxWidth: '120px' }} />
+                        <input type="number" name="temporaryFillingSurfaces" value={formData.temporaryFillingSurfaces} onChange={handleChange} min="0" placeholder="0" style={{ width: '100%', maxWidth: '120px', minHeight: '40px', boxSizing: 'border-box' }} />
                       </div>
                     )}
                   </div>

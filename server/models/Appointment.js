@@ -41,10 +41,6 @@ const appointmentSchema = new mongoose.Schema({
     type: Number,
     default: null
   },
-  urgencyScore: {
-    type: Number,
-    default: null
-  },
   createdBy: {
     type: String,
     required: true,

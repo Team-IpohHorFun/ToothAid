@@ -12,23 +12,24 @@ import {
   deleteAppointment,
   addToOutbox,
   performSync,
-  getChild
+  getChild,
+  getGraduationOrder
 } from '../db/indexedDB';
 import { getAgeFromDOB } from '../utils/age';
+import { formatChildDisplayName } from '../utils/displayName';
 
 const BuildRoster = ({ token }) => {
   const { clinicDayId } = useParams();
   const navigate = useNavigate();
   const [clinicDay, setClinicDay] = useState(null);
   const [appointments, setAppointments] = useState([]);
-  const [highRiskVisits, setHighRiskVisits] = useState([]);
-  const [routineChildren, setRoutineChildren] = useState([]);
+  const [candidateList, setCandidateList] = useState([]); // One list: grade → tier → decayed → date
   const [allScheduledAppointments, setAllScheduledAppointments] = useState([]);
   const [rosterChildren, setRosterChildren] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showTimeWindowModal, setShowTimeWindowModal] = useState(false);
-  const [pendingAdd, setPendingAdd] = useState(null); // { childId, reason, tier, urgencyScore }
+  const [pendingAdd, setPendingAdd] = useState(null); // { childId, reason, tier }
   const [viewChildDetail, setViewChildDetail] = useState(null); // { child, visitInfo? } for modal
 
   // When View child modal opens, refetch child from IndexedDB so notes and other edits are up to date
@@ -79,39 +80,37 @@ const BuildRoster = ({ token }) => {
           .map(a => a.childId)
       );
 
-      // Load high-risk visits (Emergency and High only - tier 1 and 2)
+      // One list: everyone not on roster/scheduled, sorted by grade → tier → decayed → date
       const highRisk = await getHighRiskVisits();
-      // Filter to only Emergency (tier 1) and High (tier 2), exclude already scheduled
-      const filteredHighRisk = highRisk.filter(v => {
-        if (!v.child) return false;
-        if (v.tier > 2) return false; // Exclude Routine (tier 3) from high-risk section
-        return !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId);
-      });
-      setHighRiskVisits(filteredHighRisk);
-
-      // Load routine children (all children, excluding only Emergency/High priority)
+      const withVisit = highRisk.filter(v => v.child && !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId));
+      const withVisitChildIds = new Set(withVisit.map(v => v.childId));
       const allChildren = await getAllChildren();
-      // Only exclude Emergency and High priority children (tier 1 and 2) from routine
-      const emergencyHighChildIds = new Set(filteredHighRisk.map(v => v.childId));
-      
-      // Get routine tier visits (tier 3) for urgency scores
-      const routineVisits = highRisk.filter(v => v.tier === 3);
-      const routineVisitMap = new Map(routineVisits.map(v => [v.childId, v]));
-      
-      const routine = allChildren
-        .filter(child => {
-          return !rosterChildIds.has(child.childId) && 
-                 !scheduledChildIds.has(child.childId) &&
-                 !emergencyHighChildIds.has(child.childId);
-        })
-        .map(child => ({
-          ...child,
-          urgencyScore: routineVisitMap.get(child.childId)?.urgencyScore || 0,
-          hasVisit: routineVisitMap.has(child.childId)
-        }))
-        .sort((a, b) => b.urgencyScore - a.urgencyScore) // Sort by urgency score (highest first)
-        .slice(0, 100); // Limit to first 100 for performance
-      setRoutineChildren(routine);
+      const noVisit = allChildren
+        .filter(c => !rosterChildIds.has(c.childId) && !scheduledChildIds.has(c.childId) && !withVisitChildIds.has(c.childId))
+        .map(c => ({
+          childId: c.childId,
+          child: c,
+          tier: 2,
+          tierName: 'Routine',
+          decayedTeeth: 0,
+          date: null,
+          visitId: null,
+          painFlag: false,
+          swellingFlag: false
+        }));
+      const combined = [...withVisit, ...noVisit].sort((a, b) => {
+        const gradA = getGraduationOrder(a.child?.grade);
+        const gradB = getGraduationOrder(b.child?.grade);
+        if (gradA !== gradB) return gradA - gradB;
+        if (a.tier !== b.tier) return a.tier - b.tier;
+        const dA = a.decayedTeeth ?? 0;
+        const dB = b.decayedTeeth ?? 0;
+        if (dA !== dB) return dB - dA;
+        const dateA = a.date ? new Date(a.date).getTime() : 0;
+        const dateB = b.date ? new Date(b.date).getTime() : 0;
+        return dateB - dateA;
+      });
+      setCandidateList(combined.slice(0, 150));
 
       setLoading(false);
     };
@@ -123,7 +122,7 @@ const BuildRoster = ({ token }) => {
     return appointments.some(a => a.childId === childId);
   };
 
-  const handleAddToRoster = async (childId, reason, tier = null, urgencyScore = null, timeWindow = null) => {
+  const handleAddToRoster = async (childId, reason, tier = null, timeWindow = null) => {
     if (isInRoster(childId)) return;
 
     // Determine time window if not provided
@@ -141,7 +140,7 @@ const BuildRoster = ({ token }) => {
       
       // Show modal to choose if both have space
       if (amCount < clinicDay.amCapacity && pmCount < clinicDay.pmCapacity) {
-        setPendingAdd({ childId, reason, tier, urgencyScore });
+        setPendingAdd({ childId, reason, tier });
         setShowTimeWindowModal(true);
         return; // Will continue after user selects
       } else if (amCount < clinicDay.amCapacity) {
@@ -154,10 +153,10 @@ const BuildRoster = ({ token }) => {
     }
 
     // Continue with adding to roster
-    await addToRosterWithTimeWindow(childId, reason, tier, urgencyScore, selectedTimeWindow);
+    await addToRosterWithTimeWindow(childId, reason, tier, selectedTimeWindow);
   };
 
-  const addToRosterWithTimeWindow = async (childId, reason, tier = null, urgencyScore = null, selectedTimeWindow) => {
+  const addToRosterWithTimeWindow = async (childId, reason, tier = null, selectedTimeWindow) => {
     if (isInRoster(childId)) return;
 
     // Check capacity based on time window
@@ -208,7 +207,6 @@ const BuildRoster = ({ token }) => {
         reason,
         status: 'SCHEDULED',
         priorityTier: tier,
-        urgencyScore,
         createdBy: username,
         createdAt: now
       };
@@ -225,9 +223,8 @@ const BuildRoster = ({ token }) => {
       const newRosterChild = { appointment: appointmentData, child };
       setRosterChildren([...rosterChildren, newRosterChild]);
 
-      // Remove child from all available lists immediately (so they disappear from UI right away)
-      setHighRiskVisits(prev => prev.filter(v => v.childId !== childId));
-      setRoutineChildren(prev => prev.filter(c => c.childId !== childId));
+      // Remove child from candidate list so they disappear from UI right away
+      setCandidateList(prev => prev.filter(c => c.childId !== childId));
 
       // Reload all scheduled appointments
       const allScheduled = await getAllScheduledAppointments();
@@ -285,37 +282,37 @@ const BuildRoster = ({ token }) => {
             .map(a => a.childId)
         );
 
-        // Reload high-risk visits (Emergency and High only)
+        // Reload one candidate list (grade → tier → decayed → date)
         const highRisk = await getHighRiskVisits();
-        const filteredHighRisk = highRisk.filter(v => {
-          if (!v.child) return false;
-          if (v.tier > 2) return false; // Exclude Routine (tier 3)
-          return !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId);
-        });
-        setHighRiskVisits(filteredHighRisk);
-
-        // Reload routine children (exclude only Emergency/High), sorted by urgency
+        const withVisit = highRisk.filter(v => v.child && !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId));
+        const withVisitChildIds = new Set(withVisit.map(v => v.childId));
         const allChildren = await getAllChildren();
-        const emergencyHighChildIds = new Set(filteredHighRisk.map(v => v.childId));
-        
-        // Get routine tier visits for urgency scores
-        const routineVisits = highRisk.filter(v => v.tier === 3);
-        const routineVisitMap = new Map(routineVisits.map(v => [v.childId, v]));
-        
-        const routine = allChildren
-          .filter(child => {
-            return !rosterChildIds.has(child.childId) && 
-                   !scheduledChildIds.has(child.childId) &&
-                   !emergencyHighChildIds.has(child.childId);
-          })
-          .map(child => ({
-            ...child,
-            urgencyScore: routineVisitMap.get(child.childId)?.urgencyScore || 0,
-            hasVisit: routineVisitMap.has(child.childId)
-          }))
-          .sort((a, b) => b.urgencyScore - a.urgencyScore)
-          .slice(0, 100);
-        setRoutineChildren(routine);
+        const noVisit = allChildren
+          .filter(c => !rosterChildIds.has(c.childId) && !scheduledChildIds.has(c.childId) && !withVisitChildIds.has(c.childId))
+          .map(c => ({
+            childId: c.childId,
+            child: c,
+            tier: 2,
+            tierName: 'Routine',
+            decayedTeeth: 0,
+            date: null,
+            visitId: null,
+            painFlag: false,
+            swellingFlag: false
+          }));
+        const combined = [...withVisit, ...noVisit].sort((a, b) => {
+          const gradA = getGraduationOrder(a.child?.grade);
+          const gradB = getGraduationOrder(b.child?.grade);
+          if (gradA !== gradB) return gradA - gradB;
+          if (a.tier !== b.tier) return a.tier - b.tier;
+          const dA = a.decayedTeeth ?? 0;
+          const dB = b.decayedTeeth ?? 0;
+          if (dA !== dB) return dB - dA;
+          const dateA = a.date ? new Date(a.date).getTime() : 0;
+          const dateB = b.date ? new Date(b.date).getTime() : 0;
+          return dateB - dateA;
+        });
+        setCandidateList(combined.slice(0, 150));
       }
 
       // Try to sync if online
@@ -368,17 +365,9 @@ const BuildRoster = ({ token }) => {
       // Get roster child IDs
       const rosterChildIds = new Set(appointments.map(a => a.childId));
 
-      // Combine candidates: Emergency/High priority first, then routine
-      const highRiskCandidates = highRiskVisits
-        .filter(v => v.tier <= 2 && v.child && !rosterChildIds.has(v.childId) && !scheduledChildIds.has(v.childId));
-      
-      const routineCandidates = routineChildren
-        .filter(c => !rosterChildIds.has(c.childId) && !scheduledChildIds.has(c.childId));
-
-      const candidates = [
-        ...highRiskCandidates,
-        ...routineCandidates
-      ].slice(0, remaining);
+      const candidates = candidateList
+        .filter(c => !rosterChildIds.has(c.childId) && !scheduledChildIds.has(c.childId))
+        .slice(0, remaining);
 
       const username = localStorage.getItem('username') || 'unknown';
       const newAppointments = [];
@@ -414,9 +403,8 @@ const BuildRoster = ({ token }) => {
         const childId = candidate.childId || candidate.child?.childId;
         if (!childId) continue;
 
-        const reason = candidate.tier ? (candidate.tier === 1 ? 'EMERGENCY' : 'HIGH_PRIORITY') : 'ROUTINE';
+        const reason = candidate.tier === 1 ? 'HIGH_PRIORITY' : 'ROUTINE';
         const tier = candidate.tier || null;
-        const urgencyScore = candidate.urgencyScore || null;
 
         // Calculate slot number
         let slotNumber = null;
@@ -443,7 +431,6 @@ const BuildRoster = ({ token }) => {
           reason,
           status: 'SCHEDULED',
           priorityTier: tier,
-          urgencyScore,
           createdBy: username,
           createdAt: now
         };
@@ -473,9 +460,7 @@ const BuildRoster = ({ token }) => {
           );
           setRosterChildren([...rosterChildren, ...updatedChildrenData]);
 
-          // Remove all added children from available lists immediately
-          setHighRiskVisits(prev => prev.filter(v => !addedChildIds.has(v.childId)));
-          setRoutineChildren(prev => prev.filter(c => !addedChildIds.has(c.childId)));
+          setCandidateList(prev => prev.filter(c => !addedChildIds.has(c.childId)));
 
           // Reload all scheduled appointments
           const allScheduled = await getAllScheduledAppointments();
@@ -587,7 +572,7 @@ const BuildRoster = ({ token }) => {
                         cursor: child?.childId ? 'pointer' : 'default'
                       }}
                     >
-                      {child?.fullName || 'Unknown'}
+                      {formatChildDisplayName(child) || 'Unknown'}
                     </Link>
                   </h3>
                   <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
@@ -610,38 +595,45 @@ const BuildRoster = ({ token }) => {
         </div>
       )}
 
-      {/* Emergency / High Priority */}
-      {highRiskVisits.filter(v => v.tier <= 2).length > 0 && (
+      {/* One list: grade first, then tier (pain/swelling), then decayed teeth */}
+      {candidateList.filter(c => !isInRoster(c.childId)).length > 0 && (
         <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', marginBottom: '12px', color: 'var(--color-accent)' }}>
-            🚨 Emergency / High Priority ({highRiskVisits.filter(v => v.tier <= 2).length})
+          <h2 style={{ fontSize: '18px', marginBottom: '12px', color: 'var(--color-primary)' }}>
+            Add to Roster ({candidateList.filter(c => !isInRoster(c.childId)).length})
           </h2>
-          {highRiskVisits
-            .filter(v => v.tier <= 2 && !isInRoster(v.childId))
-            .slice(0, 20)
-            .map(visit => (
-              <div key={visit.visitId} className="card" style={{ marginBottom: '8px' }}>
+          {candidateList
+            .filter(c => !isInRoster(c.childId))
+            .map(item => (
+              <div key={item.visitId || item.childId} className="card" style={{ marginBottom: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ marginBottom: '4px' }}>{visit.child?.fullName || 'Unknown'}</h3>
+                    <h3 style={{ marginBottom: '4px' }}>{formatChildDisplayName(item.child) || 'Unknown'}</h3>
                     <p style={{ color: '#666', fontSize: '14px', marginBottom: '4px' }}>
-                      {visit.tierName} • Urgency: {visit.urgencyScore}
+                      {item.child?.school || 'No school'} • {item.child?.grade || 'No grade'} • {item.child?.barangay}
                     </p>
-                    {visit.painFlag && <span className="flag-badge pain" style={{ marginRight: '4px' }}>Pain</span>}
-                    {visit.swellingFlag && <span className="flag-badge swelling">Swelling</span>}
+                    {item.tierName && (
+                      <p style={{ fontSize: '13px', marginBottom: '4px' }}>
+                        {item.tierName}
+                      </p>
+                    )}
+                    {(item.painFlag || item.swellingFlag) && (
+                      <div>
+                        {item.painFlag && <span className="flag-badge pain" style={{ marginRight: '4px' }}>Pain</span>}
+                        {item.swellingFlag && <span className="flag-badge swelling">Swelling</span>}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button
                       type="button"
                       className="btn btn-secondary"
                       onClick={() => setViewChildDetail({
-                        child: visit.child,
-                        visitInfo: {
-                          tierName: visit.tierName,
-                          urgencyScore: visit.urgencyScore,
-                          painFlag: visit.painFlag,
-                          swellingFlag: visit.swellingFlag
-                        }
+                        child: item.child,
+                        visitInfo: item.tierName ? {
+                          tierName: item.tierName,
+                          painFlag: item.painFlag,
+                          swellingFlag: item.swellingFlag
+                        } : null
                       })}
                       style={{ padding: '8px 14px', fontSize: '14px' }}
                     >
@@ -650,52 +642,11 @@ const BuildRoster = ({ token }) => {
                     <button
                       className="btn btn-primary"
                       onClick={() => handleAddToRoster(
-                        visit.childId, 
-                        visit.tier === 1 ? 'EMERGENCY' : 'HIGH_PRIORITY',
-                        visit.tier,
-                        visit.urgencyScore
+                        item.childId,
+                        item.tier === 1 ? 'HIGH_PRIORITY' : 'ROUTINE',
+                        item.tier
                       )}
-                      disabled={saving || isInRoster(visit.childId) || remaining <= 0}
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-        </div>
-      )}
-
-      {/* Routine Screenings */}
-      {routineChildren.length > 0 && (
-        <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '18px', marginBottom: '12px', color: 'var(--color-primary)' }}>
-            📋 Routine Screenings ({routineChildren.filter(c => !isInRoster(c.childId)).length})
-          </h2>
-          {routineChildren
-            .filter(c => !isInRoster(c.childId))
-            .map(child => (
-              <div key={child.childId} className="card" style={{ marginBottom: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <h3 style={{ marginBottom: '4px' }}>{child.fullName}</h3>
-                    <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-                      {child.school || 'No school'} • {child.grade || 'No grade'} • {child.barangay}
-                    </p>
-                  </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
-                      onClick={() => setViewChildDetail({ child, visitInfo: null })}
-                      style={{ padding: '8px 14px', fontSize: '14px' }}
-                    >
-                      View
-                    </button>
-                    <button
-                      className="btn btn-primary"
-                      onClick={() => handleAddToRoster(child.childId, 'ROUTINE', 3, 0)}
-                      disabled={saving || isInRoster(child.childId) || remaining <= 0}
+                      disabled={saving || isInRoster(item.childId) || remaining <= 0}
                     >
                       Add
                     </button>
@@ -759,7 +710,6 @@ const BuildRoster = ({ token }) => {
               <div style={{ marginBottom: '12px', padding: '10px', background: '#f8f9fa', borderRadius: '8px' }}>
                 <p style={{ margin: 0, fontSize: '14px' }}>
                   <strong>{viewChildDetail.visitInfo.tierName}</strong>
-                  {viewChildDetail.visitInfo.urgencyScore != null && ` • Urgency: ${viewChildDetail.visitInfo.urgencyScore}`}
                 </p>
                 {(viewChildDetail.visitInfo.painFlag || viewChildDetail.visitInfo.swellingFlag) && (
                   <div style={{ marginTop: '6px' }}>
@@ -769,7 +719,7 @@ const BuildRoster = ({ token }) => {
                 )}
               </div>
             )}
-            <p style={{ margin: '4px 0' }}><strong>Name:</strong> {viewChildDetail.child.fullName}</p>
+            <p style={{ margin: '4px 0' }}><strong>Name:</strong> {formatChildDisplayName(viewChildDetail.child)}</p>
             <p style={{ margin: '4px 0' }}><strong>Sex:</strong> {viewChildDetail.child.sex}</p>
             {viewChildDetail.child.dob && <p style={{ margin: '4px 0' }}><strong>Date of Birth:</strong> {formatDate(viewChildDetail.child.dob)}</p>}
             {(getAgeFromDOB(viewChildDetail.child.dob) != null || viewChildDetail.child.age != null) && (
@@ -849,7 +799,6 @@ const BuildRoster = ({ token }) => {
                     pendingAdd.childId,
                     pendingAdd.reason,
                     pendingAdd.tier,
-                    pendingAdd.urgencyScore,
                     'AM'
                   );
                 }}
@@ -865,7 +814,6 @@ const BuildRoster = ({ token }) => {
                     pendingAdd.childId,
                     pendingAdd.reason,
                     pendingAdd.tier,
-                    pendingAdd.urgencyScore,
                     'PM'
                   );
                 }}

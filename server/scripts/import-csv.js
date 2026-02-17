@@ -55,6 +55,15 @@ function get(row, headers, name) {
   return i >= 0 && row[i] !== undefined ? (row[i] || '').trim() : '';
 }
 
+/** Map numeric grade to app label so graduation sort works */
+const GRADE_LABELS = { 6: '6th Grade', 5: '5th Grade', 4: '4th Grade', 3: '3rd Grade', 2: '2nd Grade', 1: '1st Grade', 0: 'Kindergarten' };
+function normalizeGrade(gradeStr) {
+  if (!gradeStr) return gradeStr;
+  const n = parseInt(gradeStr, 10);
+  if (!Number.isNaN(n) && GRADE_LABELS[n] !== undefined) return GRADE_LABELS[n];
+  return gradeStr;
+}
+
 async function run() {
   const defaultChildren = path.join(__dirname, '..', 'data', 'children_philippine_names_full.csv');
   const defaultVisits = path.join(__dirname, '..', 'data', 'visits (1).csv');
@@ -82,17 +91,34 @@ async function run() {
     .filter((row) => row.length >= 6)
     .map((row) => {
       const childId = get(row, childHeaders, 'childId');
-      const fullName = get(row, childHeaders, 'fullName');
+      let firstName = get(row, childHeaders, 'firstName');
+      let lastName = get(row, childHeaders, 'lastName');
+      const fullNameCol = get(row, childHeaders, 'fullName');
+      let fullName = fullNameCol;
+      if (firstName || lastName) {
+        fullName = [firstName, lastName].filter(Boolean).join(' ').trim() || fullNameCol;
+      } else if (fullNameCol) {
+        const parts = fullNameCol.trim().split(/\s+/);
+        if (parts.length > 1) {
+          lastName = parts.pop();
+          firstName = parts.join(' ');
+        } else {
+          firstName = fullNameCol;
+          lastName = '';
+        }
+      }
       const dobStr = get(row, childHeaders, 'dob');
       const sexStr = get(row, childHeaders, 'sex') || 'M';
       const school = get(row, childHeaders, 'school');
-      const grade = get(row, childHeaders, 'grade');
+      const grade = normalizeGrade(get(row, childHeaders, 'grade'));
       const barangay = get(row, childHeaders, 'barangay');
       const guardianPhone = get(row, childHeaders, 'guardianPhone');
       const sex = sexStr.toUpperCase() === 'F' ? 'F' : sexStr.toUpperCase() === 'Other' ? 'Other' : 'M';
       return {
         childId,
-        fullName,
+        fullName: fullName || [firstName, lastName].filter(Boolean).join(' '),
+        firstName: firstName || null,
+        lastName: lastName || null,
         dob: dobStr ? new Date(dobStr) : null,
         sex,
         school,
@@ -118,18 +144,20 @@ async function run() {
       const decayedTeeth = get(row, visitHeaders, 'decayedTeeth');
       const missingTeeth = get(row, visitHeaders, 'missingTeeth');
       const filledTeeth = get(row, visitHeaders, 'filledTeeth');
-      const treatmentTypes = get(row, visitHeaders, 'treatmentTypes');
+      const treatmentTypesRaw = get(row, visitHeaders, 'treatmentTypes');
       const notes = get(row, visitHeaders, 'notes');
-      const treatments = treatmentTypes
+      // Normalize semicolons to commas inside treatment details (e.g. "Permanent: 3; Temporary: 2" -> "Permanent: 3, Temporary: 2")
+      const normalizeTreatment = (s) => s.replace(/;\s*/g, ', ').trim();
+      const treatments = treatmentTypesRaw
         .split(',')
-        .map((s) => s.trim())
+        .map((s) => normalizeTreatment(s.trim()))
         .filter(Boolean);
       return {
         visitId,
         childId,
         date: new Date(dateStr || Date.now()),
-        painFlag: painFlag.toLowerCase() === 'true',
-        swellingFlag: swellingFlag.toLowerCase() === 'true',
+        painFlag: String(painFlag).toLowerCase() === 'true',
+        swellingFlag: String(swellingFlag).toLowerCase() === 'true',
         decayedTeeth: parseInt(decayedTeeth, 10) || 0,
         missingTeeth: parseInt(missingTeeth, 10) || 0,
         filledTeeth: parseInt(filledTeeth, 10) || 0,

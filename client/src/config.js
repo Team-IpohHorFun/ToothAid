@@ -1,47 +1,27 @@
 // API configuration
-// In development, Vite proxy handles /api routes and rewrites them
-// In production, call backend directly (backend routes don't have /api prefix)
+// When app is on localhost: sync and auth go to local backend (default port 3001).
+// When deployed: use VITE_API_URL or production backend.
 const getApiBaseUrl = () => {
-  // Check if we're running on localhost (development)
-  const isLocalhost = window.location.hostname === 'localhost' || 
+  const isLocalhost = window.location.hostname === 'localhost' ||
                      window.location.hostname === '127.0.0.1' ||
                      window.location.hostname.includes('localhost');
-  
+
   if (isLocalhost) {
-    // Use relative path with /api - Vite proxy will rewrite /api/auth -> /auth
-    return '';
+    // Use local backend so sync/auth hit your machine. Override with VITE_API_URL if needed.
+    const localUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    const apiUrl = localUrl.replace(/\/$/, '');
+    console.log('API Base URL (localhost):', apiUrl);
+    return apiUrl;
   }
-  
-  // Production: use environment variable or fallback to Render URL
-  // Backend routes are /auth and /sync (no /api prefix)
+
+  // Production: environment variable or fallback to Render
   let apiUrl = import.meta.env.VITE_API_URL || 'https://toothaid-backend.onrender.com';
-  
-  // Remove trailing slash if present
   apiUrl = apiUrl.replace(/\/$/, '');
-  
-  // Log for debugging
   console.log('API Base URL:', apiUrl);
-  console.log('Environment:', import.meta.env.MODE);
-  console.log('VITE_API_URL:', import.meta.env.VITE_API_URL);
-  
   return apiUrl;
 };
 
-// Helper to get the API path prefix
-// In dev: use /api (proxy rewrites it)
-// In prod: no prefix (backend routes are /auth, /sync directly)
-export const getApiPath = (path) => {
-  const isLocalhost = window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1' ||
-                     window.location.hostname.includes('localhost');
-  
-  if (isLocalhost) {
-    // Development: use /api prefix, proxy will rewrite
-    return `/api${path}`;
-  }
-  
-  // Production: no /api prefix, backend routes are direct
-  return path;
-};
+// Paths are always direct: /auth/login, /sync/push, etc. (no /api prefix)
+export const getApiPath = (path) => path;
 
 export const API_BASE_URL = getApiBaseUrl();

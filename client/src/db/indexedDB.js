@@ -65,9 +65,21 @@ export const removeFromOutbox = async (opIds) => {
   await db.outbox.bulkDelete(opIds);
 };
 
+// Sort key for last name (supports legacy fullName-only data)
+const getLastName = (c) => (c.lastName != null && c.lastName !== '') ? c.lastName : (c.fullName || '').trim().split(/\s+/).pop() || '';
+const getFirstName = (c) => (c.firstName != null && c.firstName !== '') ? c.firstName : (c.fullName || '').trim().split(/\s+/).slice(0, -1).join(' ') || '';
+export const sortChildrenByLastName = (children) => {
+  return [...children].sort((a, b) => {
+    const ln = getLastName(a).localeCompare(getLastName(b), undefined, { sensitivity: 'base' });
+    if (ln !== 0) return ln;
+    return getFirstName(a).localeCompare(getFirstName(b), undefined, { sensitivity: 'base' });
+  });
+};
+
 // Children operations
 export const getAllChildren = async () => {
-  return await db.children.toArray();
+  const children = await db.children.toArray();
+  return sortChildrenByLastName(children);
 };
 
 export const getChild = async (childId) => {
@@ -76,13 +88,16 @@ export const getChild = async (childId) => {
 
 export const searchChildren = async (query) => {
   const lowerQuery = query.toLowerCase();
-  return await db.children
-    .filter(child => 
-      child.fullName.toLowerCase().includes(lowerQuery) ||
-      child.school.toLowerCase().includes(lowerQuery) ||
-      child.barangay.toLowerCase().includes(lowerQuery)
+  const children = await db.children
+    .filter(child =>
+      (child.fullName && child.fullName.toLowerCase().includes(lowerQuery)) ||
+      (child.firstName && child.firstName.toLowerCase().includes(lowerQuery)) ||
+      (child.lastName && child.lastName.toLowerCase().includes(lowerQuery)) ||
+      (child.school && child.school.toLowerCase().includes(lowerQuery)) ||
+      (child.barangay && child.barangay.toLowerCase().includes(lowerQuery))
     )
     .toArray();
+  return sortChildrenByLastName(children);
 };
 
 export const upsertChild = async (childData) => {
@@ -100,14 +115,16 @@ export const deleteChild = async (childId) => {
   await db.children.delete(childId);
 };
 
-// Check for possible duplicates
+// Check for possible duplicates (fullName is firstName + ' ' + lastName)
 export const checkDuplicates = async (childData) => {
-  const { school, fullName, dob, age } = childData;
+  const { school, fullName, firstName, lastName, dob, age } = childData;
+  const nameToMatch = (fullName != null && fullName !== '') ? fullName : [firstName, lastName].filter(Boolean).join(' ').trim();
   const matches = await db.children
     .filter(child => {
       if (child.school !== school) return false;
-      const nameSimilar = child.fullName.toLowerCase().includes(fullName.toLowerCase()) ||
-                         fullName.toLowerCase().includes(child.fullName.toLowerCase());
+      const childFull = child.fullName || [child.firstName, child.lastName].filter(Boolean).join(' ');
+      const nameSimilar = nameToMatch && (childFull.toLowerCase().includes(nameToMatch.toLowerCase()) ||
+                         nameToMatch.toLowerCase().includes(childFull.toLowerCase()));
       if (!nameSimilar) return false;
       
       if (dob && child.dob) {
@@ -169,46 +186,40 @@ export const getVisit = async (visitId) => {
   return await db.visits.get(visitId);
 };
 
-// Calculate tier for a visit
-const calculateTier = (visit) => {
-  // Tier 1: EMERGENCY - swelling OR pain
-  if (visit.swellingFlag || visit.painFlag) {
-    return 1; // Emergency
-  }
-  
-  // Tier 2: HIGH - no pain, no swelling, but decayedTeeth >= 3
-  const decayed = visit.decayedTeeth !== null && visit.decayedTeeth !== undefined ? visit.decayedTeeth : 0;
-  if (decayed >= 3) {
-    return 2; // High
-  }
-  
-  // Tier 3: ROUTINE - everything else
-  return 3; // Routine
+// Coerce flag to boolean (handles true, "true", 1, and legacy data)
+const asBoolean = (value) => value === true || value === 'true' || value === 1;
+
+// Graduation order: lower = graduates sooner = higher priority (Grade 6 first, then 5… then SPED)
+const GRADUATION_ORDER = {
+  '6th Grade': 0,
+  '5th Grade': 1,
+  '4th Grade': 2,
+  '3rd Grade': 3,
+  '2nd Grade': 4,
+  '1st Grade': 5,
+  'Kindergarten': 6,
+  'SPED VI': 7,
+  'SPED V': 8,
+  'SPED IV': 9,
+  'SPED III': 10,
+  'SPED II': 11,
+  'SPED I': 12,
+  'SPED Kinder/Prep': 13
+};
+export const getGraduationOrder = (grade) => {
+  if (grade == null || grade === '') return 99;
+  return GRADUATION_ORDER[String(grade).trim()] ?? 99;
 };
 
-// Calculate urgency score for a visit
-const calculateUrgencyScore = (visit) => {
-  let score = 0;
-  
-  // +100 if swelling
-  if (visit.swellingFlag) score += 100;
-  
-  // +60 if pain
-  if (visit.painFlag) score += 60;
-  
-  // +10 × decayedTeeth
-  const decayed = visit.decayedTeeth !== null && visit.decayedTeeth !== undefined ? visit.decayedTeeth : 0;
-  score += 10 * decayed;
-  
-  // +2 × missingTeeth
-  const missing = visit.missingTeeth !== null && visit.missingTeeth !== undefined ? visit.missingTeeth : 0;
-  score += 2 * missing;
-  
-  // +1 × filledTeeth
-  const filled = visit.filledTeeth !== null && visit.filledTeeth !== undefined ? visit.filledTeeth : 0;
-  score += 1 * filled;
-  
-  return score;
+// Two tiers only: 1 = High priority, 2 = Routine
+const calculateTier = (visit) => {
+  if (!visit || typeof visit !== 'object') return 2;
+  const pain = asBoolean(visit.painFlag);
+  const swelling = asBoolean(visit.swellingFlag);
+  if (swelling || pain) return 1; // High priority
+  const decayed = visit.decayedTeeth !== null && visit.decayedTeeth !== undefined ? Number(visit.decayedTeeth) : 0;
+  if (!Number.isNaN(decayed) && decayed >= 3) return 1; // High priority
+  return 2; // Routine
 };
 
 // High-risk visits with tiered ranking
@@ -244,31 +255,25 @@ export const getHighRiskVisits = async () => {
     latestVisits.map(async (visit) => {
       const child = await getChild(visit.childId);
       const tier = calculateTier(visit);
-      const urgencyScore = calculateUrgencyScore(visit);
       return { 
         ...visit, 
         child,
         tier,
-        urgencyScore,
-        tierName: tier === 1 ? 'EMERGENCY' : tier === 2 ? 'HIGH' : 'ROUTINE'
+        tierName: tier === 1 ? 'High priority' : 'Routine'
       };
     })
   );
   
-  // Sort by: Tier (1→2→3), then UrgencyScore (high→low), then older date first
+  // Hospital order: graduation (earliest first = Grade 6 first), then tier, then decayed teeth (higher first), then latest visit (most recent first)
   return visitsWithChildren.sort((a, b) => {
-    // First sort by tier (Emergency → High → Routine)
-    if (a.tier !== b.tier) {
-      return a.tier - b.tier;
-    }
-    
-    // Within same tier, sort by urgency score (high → low)
-    if (a.urgencyScore !== b.urgencyScore) {
-      return b.urgencyScore - a.urgencyScore;
-    }
-    
-    // If tied, older visit date first
-    return new Date(a.date) - new Date(b.date);
+    const gradeA = getGraduationOrder(a.child?.grade);
+    const gradeB = getGraduationOrder(b.child?.grade);
+    if (gradeA !== gradeB) return gradeA - gradeB;
+    if (a.tier !== b.tier) return a.tier - b.tier;
+    const decayedA = a.decayedTeeth != null ? a.decayedTeeth : 0;
+    const decayedB = b.decayedTeeth != null ? b.decayedTeeth : 0;
+    if (decayedA !== decayedB) return decayedB - decayedA;
+    return new Date(b.date) - new Date(a.date);
   });
 };
 

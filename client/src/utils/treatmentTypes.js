@@ -40,19 +40,20 @@ export function buildTreatmentTypesArray({
     if (opt.subType === 'extraction') {
       const perm = extractionPermanentCount?.trim() ? parseInt(extractionPermanentCount, 10) : 0;
       const temp = extractionTemporaryCount?.trim() ? parseInt(extractionTemporaryCount, 10) : 0;
-      const parts = [];
-      if (perm > 0) parts.push(`Permanent Teeth: ${perm}`);
-      if (temp > 0) parts.push(`Temporary Teeth: ${temp}`);
-      if (parts.length) result.push(`Extraction (${parts.join(', ')})`);
-      else result.push(extractionType ? `Extraction (${extractionType} Teeth)` : 'Extraction (Permanent Teeth)');
+      if (perm > 0 || temp > 0) {
+        const parts = [];
+        if (perm > 0) parts.push(`Permanent: ${perm}`);
+        if (temp > 0) parts.push(`Temporary: ${temp}`);
+        result.push(`Extraction (${parts.join(', ')})`);
+      }
     } else if (opt.subType === 'fillings') {
       const n = fillingsNumberOfTeeth?.trim() ? parseInt(fillingsNumberOfTeeth, 10) : 0;
       const gi = fillingsGlassIonomer?.trim() ? parseInt(fillingsGlassIonomer, 10) : 0;
       const comp = fillingsComposite?.trim() ? parseInt(fillingsComposite, 10) : 0;
-      result.push(`Fillings / Restorations (${n} teeth, GI: ${gi}, Composite: ${comp})`);
+      result.push(`Fillings / Restorations (Teeth: ${n}, GI: ${gi}, Composite: ${comp})`);
     } else if (opt.subType === 'temporary_filling') {
       const s = temporaryFillingSurfaces?.trim() ? parseInt(temporaryFillingSurfaces, 10) : 0;
-      result.push(`Temporary Filling per Surface (${s})`);
+      result.push(`Temporary Filling per Surface (Surfaces: ${s})`);
     } else {
       result.push(opt.label);
     }
@@ -74,17 +75,29 @@ export function parseTreatmentTypesForForm(treatmentTypes = []) {
   let temporaryFillingSurfaces = '';
 
   for (const t of treatmentTypes) {
-    if (t.startsWith('Extraction (') && t.includes('Teeth')) {
+    if (t.startsWith('Extraction (')) {
       selectedIds.push('extraction');
       if (t.includes('Permanent')) extractionType = 'Permanent';
       if (t.includes('Temporary')) extractionType = extractionType ? extractionType : 'Temporary';
-      const permMatch = t.match(/Permanent Teeth:\s*(\d+)/i);
-      const tempMatch = t.match(/Temporary Teeth:\s*(\d+)/i);
-      if (permMatch) extractionPermanentCount = permMatch[1];
-      if (tempMatch) extractionTemporaryCount = tempMatch[1];
+      const bothMatch = t.match(/Permanent:\s*(\d+),\s*Temporary:\s*(\d+)/i);
+      const permOnlyMatch = t.match(/Permanent:\s*(\d+)\)/i);
+      const tempOnlyMatch = t.match(/Temporary:\s*(\d+)\)/i);
+      if (bothMatch) {
+        extractionPermanentCount = bothMatch[1];
+        extractionTemporaryCount = bothMatch[2];
+      } else if (permOnlyMatch) {
+        extractionPermanentCount = permOnlyMatch[1];
+      } else if (tempOnlyMatch) {
+        extractionTemporaryCount = tempOnlyMatch[1];
+      } else {
+        const permMatch = t.match(/Permanent Teeth:\s*(\d+)/i);
+        const tempMatch = t.match(/Temporary Teeth:\s*(\d+)/i);
+        if (permMatch) extractionPermanentCount = permMatch[1];
+        if (tempMatch) extractionTemporaryCount = tempMatch[1];
+      }
     } else if (t.startsWith('Fillings / Restorations (')) {
       selectedIds.push('fillings');
-      const match = t.match(/\((\d+)\s*teeth,\s*GI:\s*(\d+),\s*Composite:\s*(\d+)\)/i);
+      const match = t.match(/\(Teeth:\s*(\d+),\s*GI:\s*(\d+),\s*Composite:\s*(\d+)\)/i) || t.match(/\((\d+)\s*teeth,\s*GI:\s*(\d+),\s*Composite:\s*(\d+)\)/i);
       if (match) {
         fillingsNumberOfTeeth = match[1];
         fillingsGlassIonomer = match[2];
@@ -92,7 +105,7 @@ export function parseTreatmentTypesForForm(treatmentTypes = []) {
       }
     } else if (t.startsWith('Temporary Filling per Surface (')) {
       selectedIds.push('temporary_filling');
-      const m = t.match(/\((\d+)\)/);
+      const m = t.match(/\(Surfaces:\s*(\d+)\)/i) || t.match(/\((\d+)\)/);
       if (m) temporaryFillingSurfaces = m[1];
     } else {
       const opt = TREATMENT_OPTIONS.find(o => o.label === t && !o.subType);
@@ -127,10 +140,22 @@ export function getTreatmentCategoryAndValue(treatmentString) {
   if (t.startsWith('Extraction (')) {
     let perm = 0;
     let temp = 0;
-    const permMatch = t.match(/Permanent Teeth:\s*(\d+)/i);
-    const tempMatch = t.match(/Temporary Teeth:\s*(\d+)/i);
-    if (permMatch) perm = parseInt(permMatch[1], 10);
-    if (tempMatch) temp = parseInt(tempMatch[1], 10);
+    const bothMatch = t.match(/Permanent:\s*(\d+),\s*Temporary:\s*(\d+)/i);
+    const permOnlyMatch = t.match(/Permanent:\s*(\d+)\)/i);
+    const tempOnlyMatch = t.match(/Temporary:\s*(\d+)\)/i);
+    if (bothMatch) {
+      perm = parseInt(bothMatch[1], 10);
+      temp = parseInt(bothMatch[2], 10);
+    } else if (permOnlyMatch) {
+      perm = parseInt(permOnlyMatch[1], 10);
+    } else if (tempOnlyMatch) {
+      temp = parseInt(tempOnlyMatch[1], 10);
+    } else {
+      const permMatch = t.match(/Permanent Teeth:\s*(\d+)/i);
+      const tempMatch = t.match(/Temporary Teeth:\s*(\d+)/i);
+      if (permMatch) perm = parseInt(permMatch[1], 10);
+      if (tempMatch) temp = parseInt(tempMatch[1], 10);
+    }
     const total = perm + temp;
     return { category: 'Extraction', value: total > 0 ? total : 1 };
   }

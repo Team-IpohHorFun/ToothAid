@@ -5,6 +5,7 @@ import Login from './pages/Login';
 import Home from './pages/Home';
 import SearchChild from './pages/SearchChild';
 import RegisterChild from './pages/RegisterChild';
+import RegisterNewChild from './pages/RegisterNewChild';
 import ChildProfile from './pages/ChildProfile';
 import AddVisit from './pages/AddVisit';
 import HighRiskList from './pages/HighRiskList';
@@ -159,6 +160,10 @@ function App() {
             <Route
               path="/search"
               element={<SearchChild token={token} />}
+            />
+            <Route
+              path="/register-child"
+              element={<RegisterNewChild token={token} />}
             />
             <Route
               path="/register"

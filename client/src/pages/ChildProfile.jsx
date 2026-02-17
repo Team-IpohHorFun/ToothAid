@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import NavBar from '../components/NavBar';
 import PageHeader from '../components/PageHeader';
 import DateInput from '../components/DateInput';
@@ -14,11 +14,13 @@ import {
   performSync 
 } from '../db/indexedDB';
 import { getAgeFromDOB } from '../utils/age';
+import { formatChildDisplayName } from '../utils/displayName';
 import { TREATMENT_OPTIONS, EXTRACTION_CHOICES, buildTreatmentTypesArray, parseTreatmentTypesForForm } from '../utils/treatmentTypes';
 
 const ChildProfile = ({ token }) => {
   const { childId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [child, setChild] = useState(null);
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,9 +47,27 @@ const ChildProfile = ({ token }) => {
   const [error, setError] = useState('');
 
 
+  // Refetch when childId changes or when navigating back to this profile (e.g. from Add Visit)
   useEffect(() => {
     loadData();
-  }, [childId]);
+  }, [childId, location.pathname]);
+
+  // When we navigated here after adding a visit, refresh and clear the state
+  useEffect(() => {
+    if (location.state?.refreshVisits) {
+      loadData();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state?.refreshVisits]);
+
+  // Refetch when user returns to this tab so latest visits always show
+  useEffect(() => {
+    const onFocus = () => {
+      if (location.pathname === `/child/${childId}`) loadData();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [childId, location.pathname]);
 
   const loadData = async () => {
     const childData = await getChild(childId);
@@ -77,8 +97,14 @@ const ChildProfile = ({ token }) => {
 
   // ===== CHILD EDIT HANDLERS =====
   const startEditingChild = () => {
+    const fn = (child.firstName != null && child.firstName !== '') ? child.firstName : '';
+    const ln = (child.lastName != null && child.lastName !== '') ? child.lastName : '';
+    const parts = (child.fullName || '').trim().split(/\s+/);
+    const firstName = fn || (parts.length > 1 ? parts.slice(0, -1).join(' ') : parts[0] || '');
+    const lastName = ln || (parts.length > 1 ? parts.pop() : '');
     setChildFormData({
-      fullName: child.fullName || '',
+      firstName,
+      lastName,
       dob: formatDateForInput(child.dob),
       age: child.age || '',
       sex: child.sex || '',
@@ -93,8 +119,9 @@ const ChildProfile = ({ token }) => {
   };
 
   const handleChildFormChange = (e) => {
-    const { name, value } = e.target;
-    setChildFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    const next = (type === 'text' || type === 'textarea') && name !== 'notes' ? String(value).toUpperCase() : value;
+    setChildFormData(prev => ({ ...prev, [name]: next }));
   };
 
   const handleSaveChild = async (e) => {
@@ -107,9 +134,14 @@ const ChildProfile = ({ token }) => {
       const now = new Date().toISOString();
       
       // When DOB is set, store age as null so age is always computed from DOB (updates over time)
+      const firstName = (childFormData.firstName || '').trim();
+      const lastName = (childFormData.lastName || '').trim();
+      const fullName = [firstName, lastName].filter(Boolean).join(' ');
       const updatedChild = {
         ...child,
-        fullName: childFormData.fullName.trim(),
+        fullName,
+        firstName: firstName || null,
+        lastName: lastName || null,
         dob: childFormData.dob || null,
         age: childFormData.dob ? null : (childFormData.age ? parseInt(childFormData.age) : null),
         sex: childFormData.sex,
@@ -197,7 +229,8 @@ const ChildProfile = ({ token }) => {
         setVisitFormData(prev => ({ ...prev, [name]: checked }));
       }
     } else {
-      setVisitFormData(prev => ({ ...prev, [name]: value }));
+      const next = (type === 'text' || type === 'textarea') && name !== 'notes' ? String(value).toUpperCase() : value;
+      setVisitFormData(prev => ({ ...prev, [name]: next }));
     }
   };
 
@@ -311,7 +344,7 @@ const ChildProfile = ({ token }) => {
 
   return (
     <div className="container">
-<PageHeader title={child.fullName} subtitle={`${child.school} • ${child.barangay}`} icon="profile" />
+<PageHeader title={formatChildDisplayName(child)} subtitle={`${child.school} • ${child.barangay}`} icon="profile" />
 
       {error && <div className="alert alert-danger">{error}</div>}
 
@@ -358,11 +391,21 @@ const ChildProfile = ({ token }) => {
         {isEditingChild ? (
           <form onSubmit={handleSaveChild}>
             <div className="form-group">
-              <label>Full Name *</label>
+              <label>First Name *</label>
               <input
                 type="text"
-                name="fullName"
-                value={childFormData.fullName}
+                name="firstName"
+                value={childFormData.firstName}
+                onChange={handleChildFormChange}
+                required
+              />
+            </div>
+            <div className="form-group">
+              <label>Last Name *</label>
+              <input
+                type="text"
+                name="lastName"
+                value={childFormData.lastName}
                 onChange={handleChildFormChange}
                 required
               />
@@ -374,20 +417,23 @@ const ChildProfile = ({ token }) => {
                 name="dob"
                 value={childFormData.dob}
                 onChange={handleChildFormChange}
-                placeholder="MM/DD/YYYY"
+                placeholder="Select date"
+                showTodayButton={false}
+                yearEnd={new Date().getFullYear()}
+                yearStart={new Date().getFullYear() - 50}
               />
             </div>
 
             {childFormData.dob ? (
               <div className="form-group">
-                <label>Age (from date of birth)</label>
+                <label>Age (from Date of Birth)</label>
                 <p style={{ margin: 0, color: '#555' }}>
                   {getAgeFromDOB(childFormData.dob) != null ? `${getAgeFromDOB(childFormData.dob)} years` : '—'}
                 </p>
               </div>
             ) : (
               <div className="form-group">
-                <label>Age (if DOB unknown)</label>
+                <label>Age (if Date of Birth unknown)</label>
                 <input
                   type="number"
                   name="age"
@@ -430,6 +476,13 @@ const ChildProfile = ({ token }) => {
                 <option value="4th Grade">4th Grade</option>
                 <option value="5th Grade">5th Grade</option>
                 <option value="6th Grade">6th Grade</option>
+                <option value="SPED Kinder/Prep">SPED Kinder/Prep</option>
+                <option value="SPED I">SPED I</option>
+                <option value="SPED II">SPED II</option>
+                <option value="SPED III">SPED III</option>
+                <option value="SPED IV">SPED IV</option>
+                <option value="SPED V">SPED V</option>
+                <option value="SPED VI">SPED VI</option>
               </select>
             </div>
 
@@ -487,7 +540,7 @@ const ChildProfile = ({ token }) => {
           </form>
         ) : (
           <>
-            <p><strong>Name:</strong> {child.fullName}</p>
+            <p><strong>Name:</strong> {formatChildDisplayName(child)}</p>
             <p><strong>Sex:</strong> {child.sex}</p>
             {child.dob && <p><strong>Date of Birth:</strong> {formatDate(child.dob)}</p>}
             {(getAgeFromDOB(child.dob) != null || child.age != null) && (
@@ -530,7 +583,7 @@ const ChildProfile = ({ token }) => {
           <div className="card" style={{ maxWidth: '400px', width: '100%' }}>
             <h3 style={{ color: 'var(--color-accent)', marginBottom: '16px', fontSize: '18px' }}>Delete Child?</h3>
             <p style={{ marginBottom: '8px', fontSize: '16px' }}>
-              Are you sure you want to delete <strong>{child.fullName}</strong>?
+              Are you sure you want to delete <strong>{formatChildDisplayName(child)}</strong>?
             </p>
             <p style={{ marginBottom: '16px', color: 'var(--color-accent)', fontSize: '16px' }}>
               This will also delete all {visits.length} visit record(s) for this child. This action cannot be undone.
@@ -715,17 +768,16 @@ const ChildProfile = ({ token }) => {
                               )}
                               {isSelected && opt.subType === 'fillings' && (
                                 <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
-                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Number of teeth</label><input type="number" name="fillingsNumberOfTeeth" value={visitFormData.fillingsNumberOfTeeth || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%' }} /></div>
-                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Glass Ionomer (per surface)</label><input type="number" name="fillingsGlassIonomer" value={visitFormData.fillingsGlassIonomer || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%' }} /></div>
-                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Composite (per surface)</label><input type="number" name="fillingsComposite" value={visitFormData.fillingsComposite || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%' }} /></div>
+                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', alignItems: 'end' }}>
+                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Number of teeth</label><input type="number" name="fillingsNumberOfTeeth" value={visitFormData.fillingsNumberOfTeeth || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%', minHeight: '40px', boxSizing: 'border-box' }} /></div>
+                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Glass Ionomer (per surface)</label><input type="number" name="fillingsGlassIonomer" value={visitFormData.fillingsGlassIonomer || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%', minHeight: '40px', boxSizing: 'border-box' }} /></div>
+                                    <div><label style={{ fontSize: '12px', color: '#666' }}>Synthetic Filling (composite) per Surface</label><input type="number" name="fillingsComposite" value={visitFormData.fillingsComposite || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%', minHeight: '40px', boxSizing: 'border-box' }} /></div>
                                   </div>
                                 </div>
                               )}
                               {isSelected && opt.subType === 'temporary_filling' && (
                                 <div style={{ marginTop: '8px', marginLeft: '8px', padding: '10px 12px', background: '#f8f9fa', borderRadius: '8px' }}>
-                                  <label style={{ fontSize: '12px', color: '#666' }}>Number of surfaces</label>
-                                  <input type="number" name="temporaryFillingSurfaces" value={visitFormData.temporaryFillingSurfaces || ''} onChange={handleVisitFormChange} min="0" style={{ width: '100%', maxWidth: '120px' }} />
+                                  <input type="number" name="temporaryFillingSurfaces" value={visitFormData.temporaryFillingSurfaces || ''} onChange={handleVisitFormChange} min="0" placeholder="0" style={{ width: '100%', maxWidth: '120px', minHeight: '40px', boxSizing: 'border-box' }} />
                                 </div>
                               )}
                             </div>

@@ -47,9 +47,12 @@ router.post('/push', authenticateToken, async (req, res) => {
           const existing = await Child.findOne({ childId: p.childId });
           const updatedBy = existing ? username : (p.updatedBy || createdBy);
           // Build explicit update so every schema field (including notes) is written to MongoDB
+          const fullNameFromParts = [p.firstName, p.lastName].filter(Boolean).join(' ').trim();
           const childData = {
             childId: p.childId,
-            fullName: p.fullName,
+            fullName: fullNameFromParts || p.fullName,
+            firstName: p.firstName != null && p.firstName !== '' ? p.firstName : null,
+            lastName: p.lastName != null && p.lastName !== '' ? p.lastName : null,
             dob: p.dob ? new Date(p.dob) : null,
             age: p.age != null ? p.age : null,
             sex: p.sex,
