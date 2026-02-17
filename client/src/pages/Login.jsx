@@ -87,7 +87,7 @@ const Login = ({ setToken }) => {
 
   const handleDemo = () => {
     setUsername('demo');
-    setPassword('demo');
+    setPassword('demo123demo###');
   };
 
   const handleRegister = async (e) => {
