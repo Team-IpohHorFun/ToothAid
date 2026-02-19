@@ -11,28 +11,34 @@ Offline-first Progressive Web App (PWA) for dental clinic operations. Built with
 - **DMFT tracking** – Decayed, Missing, and Filled Teeth
 - **High-risk cases** – Track pain/swelling flags and monitor cases
 - **Clinic days** – Create and manage clinic days with capacity
-- **Appointments** – Build rosters with priority (Emergency, High Priority, Routine) and time windows (AM, PM, Full Day)
+- **Appointments** – Build rosters with priority (High Priority, Routine) and time windows (AM, PM, Full Day)
 - **Statistics & graphs** – Interactive, swipeable charts with multiple time views
 - **Offline-first** – Full operation in IndexedDB when offline
 - **Sync** – Push/pull when online; idempotent operations to avoid duplicates
 
 ### Statistics & Reports
 
-The **Reports** (Graphs) page uses swipeable slides and time filters:
+The **Reports** page includes a **Dataset Overview** (Total Children, Total Visits, Schools Covered, date range), **Export** (treatment summary as Excel), and **swipeable chart slides** with time filters.
 
-1. **Average Decayed Teeth (D) per child** – Line chart; view by Monthly, Quarterly, or Half-year
-2. **% of children with ≥1 decayed tooth** – Line chart; same granularity options
-3. **F/DMFT ratio** – Line chart; population-level filled vs total DMFT
-4. **Treatments by type** – Pie chart; filter by Last 6 months, 1 year, or All
-5. **Treatments by school** – Stacked bar chart
-6. **Average DMFT by school** – Bar chart; latest visit per child
-7. **Average DMFT over time** – Line chart; same granularity as (1)–(3)
+**Charts (in order):**
+1. **% with Zero Cavities by Grade** – Bar chart; year selector (latest visit per child in that year)
+2. **Average Decayed Teeth (D) per child** – Line chart; view by Monthly, Quarterly, or Half-year
+3. **% of children with ≥1 decayed tooth** – Line chart; same granularity options
+4. **F/DMFT ratio** – Line chart; population-level filled vs total DMFT
+5. **Treatments by type** – Pie chart; filter by Last 6 months, 1 year, or All
+6. **Treatments by school** – Stacked bar chart (top schools)
+7. **Average DMFT by school** – Bar chart; latest visit per child (top schools)
+8. **Average DMFT over time** – Line chart; same granularity as (2)–(4)
 
 Charts use **rolling latest-visit-per-child** per time bucket (no gaps for missing months). Line charts have large touch targets and tooltips; horizontal swipes change slides without scrolling the page.
 
+**Report generation:**
+- **Dataset Overview** – Headline metrics (total children, total visits, schools covered, coverage date range).
+- **Export** – **Treatment summary (Excel)**: choose Monthly or Yearly, then month/year; download generates an Excel file with treatment counts by type (aligned with treatment options in the app).
+
 ### Clinic days & appointments
 - **Clinic day** – Date, school, capacity (total and optional AM/PM split; AM+PM = total)
-- **Roster** – Priority-based scheduling (Emergency, High Priority, Routine), time windows, slot numbers
+- **Roster** – Priority-based scheduling (High Priority, Routine), time windows, slot numbers
 - **Appointments** – Status: Scheduled, Attended, Missed, Rescheduled, Cancelled
 
 ### UI & UX
@@ -52,7 +58,7 @@ Charts use **rolling latest-visit-per-child** per time bucket (no gaps for missi
 - **Child profile** – Details, visit timeline, Add Visit button, and edit existing visits (same chip-style form)
 - **High-Risk Cases** – List and management
 - **Clinic Days** – List, Create Clinic Day, Build Roster, Clinic Day Roster
-- **Reports** – Swipeable charts; View: Monthly/Quarterly/Half-year; pie: 6 months/1 year/All
+- **Reports** – Dataset overview, Export (treatment summary Excel: monthly/yearly), swipeable charts; line charts: Monthly/Quarterly/Half-year; pie: 6 months/1 year/All
 - **Sync** – Status, last sync, pending changes, manual Sync Now
 
 ## Tech stack
@@ -60,7 +66,8 @@ Charts use **rolling latest-visit-per-child** per time bucket (no gaps for missi
 - **Frontend:** React 18, Vite, React Router, PWA (vite-plugin-pwa)
 - **Charts:** Recharts
 - **Offline:** IndexedDB via Dexie
-- **Backend:** Node.js, Express, JWT
+- **Export:** xlsx (SheetJS) for treatment summary Excel download
+- **Backend:** Node.js, Express, JWT (jsonwebtoken), bcryptjs
 - **Database:** MongoDB (Mongoose)
 
 ## Project structure
@@ -71,8 +78,9 @@ ToothAid/
 │   ├── models/          # Child, Visit, ClinicDay, Appointment, ProcessedOp, User
 │   ├── routes/          # auth.js, sync.js
 │   ├── middleware/      # auth.js (JWT)
-│   ├── scripts/         # seed.js, view-data.js, migrate-visits.js, import-csv.js
+│   ├── scripts/         # seed.js, view-data.js, migrate-visits.js, migrate-children-notes.js, import-csv.js
 │   ├── data/            # optional data dir (.gitkeep)
+│   ├── .env.example     # env template; copy to .env
 │   ├── db.js
 │   ├── server.js
 │   └── package.json
@@ -85,6 +93,7 @@ ToothAid/
 │   │   ├── config.js
 │   │   ├── App.jsx, App.css, fonts.css, main.jsx
 │   ├── public/          # tooth-icon.svg, manifest.json
+│   ├── .env.example     # env template; copy to .env for VITE_API_URL
 │   ├── vite.config.js   # dev server (port 3000), API proxy, PWA
 │   ├── index.html
 │   └── package.json
@@ -114,18 +123,12 @@ ToothAid/
    cd server
    npm install
    ```
-   Create `server/.env`:
-   ```env
-   PORT=3001
-   MONGODB_URI=mongodb://localhost:27017/toothaid
-   JWT_SECRET=your-secret-key-change-in-production
-   NODE_ENV=development
-   ```
+   Copy `server/.env.example` to `server/.env` and set your values (e.g. `MONGODB_URI`, `JWT_SECRET`).
    ```bash
    npm run seed   # optional: demo user demo/demo
-   npm start      # http://localhost:3001
+   npm start      # http://localhost:3001 (or npm run dev for auto-reload)
    ```
-   **Other scripts:** `npm run view-data` (inspect DB), `npm run migrate-visits`, `npm run import-csv -- <children.csv> <visits.csv>` (bulk import).
+   **Other scripts:** `npm run view-data` (inspect DB), `npm run migrate-visits`, `npm run migrate-children-notes`, `npm run import-csv -- <children.csv> <visits.csv>` (bulk import).
 
 2. **Frontend** (new terminal)
    ```bash
