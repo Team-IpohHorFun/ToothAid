@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+
+# environment variables
+.env
+.env.*
+!.env.example
+
+# build outputs
+dist/
+build/
+
+# logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+
+# local data (ignore CSVs etc.; keep docs)
+server/data/*
+!server/data/.gitkeep
+!server/data/CSV_IMPORT_FORMAT.md
+
+# optional
+coverage/
