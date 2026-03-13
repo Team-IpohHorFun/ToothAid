@@ -1,4 +1,4 @@
-# ToothAid _(ToothAid)_
+# ToothAid
 
 Offline-first dental clinic management PWA that allows clinics to record patient visits, track oral health data, and synchronize records in low-connectivity environments.
 
